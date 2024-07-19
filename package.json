@@ -1,0 +1,22 @@
+{
+  "name": "@velipso/boxburner-root",
+  "private": true,
+  "author": "velipso",
+  "license": "0BSD",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/velipso/boxburner.git"
+  },
+  "workspaces": [
+    "lib",
+    "ui"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "clean": "npm run clean --workspaces",
+    "dev": "npm run dev --workspace ui"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}

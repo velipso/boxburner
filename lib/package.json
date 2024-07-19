@@ -1,0 +1,38 @@
+{
+  "name": "@velipso/boxburner",
+  "version": "0.1.0",
+  "description": "Generates patterns for laser cutting",
+  "main": "dist/boxburner.cjs",
+  "module": "dist/boxburner.js",
+  "types": "dist/boxburner.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/boxburner.js",
+      "require": "./dist/boxburner.cjs"
+    }
+  },
+  "scripts": {
+    "build": "rollup -c && rollup -c rollup.config.cjs.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/velipso/boxburner.git"
+  },
+  "author": "velipso",
+  "license": "0BSD",
+  "bugs": {
+    "url": "https://github.com/velipso/boxburner/issues"
+  },
+  "homepage": "https://github.com/velipso/boxburner#readme",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "rollup": "^4.18.1",
+    "rollup-plugin-dts": "^6.1.1"
+  },
+  "dependencies": {
+    "tslib": "^2.6.3"
+  }
+}
