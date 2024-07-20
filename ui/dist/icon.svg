@@ -1,3 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="32" height="32" viewBox="0 0 100 100">
-  <circle r="45" cx="50" cy="50" fill="blue" />
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g>
+        <path d="M50.009,-0L93.227,24.952L50.009,49.904L6.791,24.952L26.096,13.806L30.877,16.562L30.861,11.055L50.009,-0Z" style="fill:rgb(216,215,135);"/>
+        <path d="M93.227,74.856L50.009,99.808L50.009,49.904L93.227,24.952L93.227,74.856Z" style="fill:rgb(234,233,190);"/>
+        <path d="M6.785,74.866L6.773,24.962L49.997,49.904L50.009,99.808L6.785,74.866Z" style="fill:rgb(187,185,99);"/>
+        <path d="M30.877,16.562L69.315,38.751L69.312,67.794C69.312,70.536 71.605,69.765 72.583,69.225C73.597,68.665 74.217,66.092 74.215,64.981L74.222,35.914L30.865,11.055L30.877,16.562Z" style="fill:rgb(46,46,20);"/>
+    </g>
 </svg>

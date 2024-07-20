@@ -12,8 +12,7 @@
     "ui"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "clean": "npm run clean --workspaces",
+    "build": "npm run build --workspace lib && npm run build --workspace ui",
     "dev": "npm run dev --workspace ui"
   },
   "devDependencies": {
