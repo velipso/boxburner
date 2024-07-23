@@ -82,8 +82,23 @@ html, body {
   margin: 10px 0 2px;
 }
 
+.input-title.hide-wrap > .title {
+  height: 20px;
+  padding: 4px 0;
+}
+
 .tab {
   margin-left: 10px;
+}
+
+.hide-wrap {
+  display: flex;
+  flex-flow: row nowrap;
+  margin-left: -10px;
+}
+
+.hide-wrap > * {
+  flex: auto;
 }
 
 select,
@@ -125,6 +140,10 @@ button:not(:disabled):active {
   transform: translateY(2px);
 }
 
+nav button {
+  border: none;
+}
+
 .elements-item {
   border-bottom: 1px dotted #e2e5ec44;
   margin-bottom: 20px;
@@ -134,22 +153,40 @@ button:not(:disabled):active {
 .elements-remove {
   display: inline-block;
   background-color: transparent;
+  font-weight: bold;
   color: #e2e5ec;
-  border-color: #e2e5ec;
-  font-size: 12px;
+  font-size: 15px;
   line-height: 0;
   width: 20px;
   height: 20px;
   min-height: unset;
-  padding: 4px;
+  padding: 3px 4px 5px;
+  margin-left: -5px;
 }
 
 .elements-remove:not(:disabled):hover {
   background-color: #e2e5ec33;
-  border-color: #e2e5ec;
 }
 
 .elements-remove:not(:disabled):active {
   background-color: #e2e5ec55;
   transform: translateY(2px);
+}
+
+.hide-button {
+  flex: none;
+  background-color: transparent;
+  border: none;
+  color: #e2e5ec;
+  width: 30px;
+}
+
+.hide-button:not(:disabled):hover {
+  background-color: transparent;
+  border: none;
+  color: #e2e5ec;
+}
+
+.hide-button:not(:disabled):active {
+  transform: none;
 }

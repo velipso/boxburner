@@ -21,6 +21,10 @@ const generatorOptions = generators.map(g => ({ label: g.name(), value: g }));
 
 let debug = false;
 
+function styleHide(hide?: boolean) {
+  return hide ? { display: 'none' } : undefined;
+}
+
 function Select<T>({
   title,
   options,
@@ -166,12 +170,22 @@ function InputElements({
     },
     [setValue]
   );
+  const [hide, setHide] = useState(false);
   const template = typedef.metadata?.itemTitle || '{}';
   return (
     <>
-      <MetaTitle metadata={typedef.metadata} />
+      <MetaTitle
+        metadata={typedef.metadata}
+        postfix={`(${values.length})`}
+        hide={hide}
+        setHide={setHide}
+      />
       {values.map((value, i) => (
-        <div className="tab elements-item" key={i}>
+        <div
+          className="tab elements-item"
+          style={styleHide(hide)}
+          key={i}
+        >
           <div className="input-title">
             <button className="elements-remove" onClick={() => onRemove(i)}>&times;</button>
             {' '}
@@ -194,7 +208,7 @@ function InputElements({
         </div>
       ))}
       {values.length <= 0 && <div className="tab"><p><em>Empty</em></p></div>}
-      <div className="tab">
+      <div className="tab" style={styleHide(hide)}>
         <button onClick={onAdd}>
           {`Add ${template.replace(/\{\}/g, `${values.length + 1}`)}`}
         </button>
@@ -209,17 +223,19 @@ function InputProperties({
   value,
   setValue,
   skipTitle,
+  hide,
 }: {
   schema: JSONTypeDefSchema;
   typedef: JSONTypeDefProperties;
   value: any;
   setValue(v: any | ((prevValue: any) => any)): void;
   skipTitle?: boolean;
+  hide?: boolean;
 }) {
   return typedef.metadata.order.map((k) => (
     <React.Fragment key={k}>
       {!skipTitle && <MetaTitle metadata={typedef.metadata} />}
-      <div className="tab">
+      <div className="tab" style={styleHide(hide)}>
         <JTDEditValue
           schema={schema}
           typedef={typedef.properties[k]}
@@ -249,30 +265,85 @@ function InputDiscriminator({
   value: any;
   setValue(v: any | ((prevValue: any) => any)): void;
 }) {
-  const setDiscriminator = useCallback(
+  const [hide, setHide] = useState(false);
+  const discVal = value[typedef.discriminator];
+  const [objects, setObjects] = useState(() => {
+    const objects = new Map<string, any>();
+    for (const k of typedef.metadata.order) {
+      if (discVal === k) {
+        objects.set(k, value);
+      } else {
+        objects.set(k, newJTD(typedef.mapping[k]));
+      }
+    }
+    return objects;
+  });
+  const setDiscVal = useCallback(
     (disc: string) => {
-      setValue(newJTD(typedef.mapping[disc]));
+      setValue(objects.get(disc));
     },
-    [setValue]
+    [objects, setValue]
+  );
+  const setProperties = useCallback(
+    (v: any | ((prevValue: any) => any)) => {
+      const newValue = typeof v === 'function' ? v(value) : v;
+      const newObjects = new Map(objects);
+      newObjects.set(discVal, newValue);
+      setObjects(newObjects);
+      setValue(newValue);
+    },
+    [objects, value, setValue, discVal, setObjects]
   );
   return (
     <>
       <MetaTitle metadata={typedef.metadata} />
-      <Select
-        options={typedef.metadata.order.map(k => ({
-          label: typedef.mapping[k].metadata.title || k,
-          value: k
-        }))}
-        value={value[typedef.discriminator]}
-        setValue={setDiscriminator}
-      />
+      <div className="hide-wrap">
+        <HideButton hide={hide} setHide={setHide} />
+        <Select
+          options={typedef.metadata.order.map(k => ({
+            label: typedef.mapping[k].metadata.title || k,
+            value: k
+          }))}
+          value={discVal}
+          setValue={setDiscVal}
+        />
+      </div>
       <InputProperties
+        hide={hide}
+        key={discVal}
         skipTitle={true}
         schema={schema}
-        typedef={typedef.mapping[value[typedef.discriminator]]}
+        typedef={typedef.mapping[discVal]}
         value={value}
-        setValue={setValue}
+        setValue={setProperties}
       />
+    </>
+  );
+}
+
+function HideButton({
+  hide,
+  setHide
+}: {
+  hide?: boolean;
+  setHide?(hide: boolean | ((prevValue: boolean) => void)): void;
+}) {
+  const toggleHidden = useCallback(
+    () => {
+      setHide?.(v => !v);
+    },
+    [setHide]
+  );
+  return (
+    <>
+      {setHide && (
+        <button
+          className="hide-button"
+          onClick={toggleHidden}
+        >
+          {hide ? '▶' : '▼'}
+        </button>
+      )}
     </>
   );
 }
@@ -281,18 +352,27 @@ function MetaTitle({
   metadata: {
     title
   },
-  index
+  postfix,
+  hide,
+  setHide
 }: {
   metadata: {
     title?: string;
   };
-  index?: number;
+  postfix?: string;
+  hide?: boolean;
+  setHide?(hide: boolean): void;
 }) {
   return (
     <>
-      {title && (
-        <div className="input-title">
-          {typeof index === 'number' ? title.replace(/\{\}/g, `${index}`) : title}:
+      {(title || setHide) && (
+        <div className={setHide ? 'input-title hide-wrap' : 'input-title'}>
+          {setHide && <HideButton hide={hide} setHide={setHide} />}
+          {title && (
+            <div className="title">
+              {postfix ? `${title} ${postfix}` : title}:
+            </div>
+          )}
         </div>
       )}
     </>
@@ -924,6 +1004,7 @@ function Canvas({
 
 function App() {
   const [generator, setGenerator] = useState(generators[0]);
+  const generatorName = useMemo(() => generator.name(), [generator]);
   const schema = useMemo(() => generator.schema(), [generator]);
   const [allParams, setAllParams] = useState<Map<GeneratorBase, any>>(() =>
     new Map<GeneratorBase, any>(
@@ -969,6 +1050,7 @@ function App() {
           setValue={setGenerator}
         />
         <JTDEditor
+          key={generatorName}
           schema={schema}
           value={params}
           setValue={setParams}
