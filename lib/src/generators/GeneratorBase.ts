@@ -12,5 +12,5 @@ export abstract class GeneratorBase {
   abstract name(): string;
   abstract defaultParams(): any;
   abstract schema(): JSONTypeDefSchema;
-  abstract generate(params: any): Surface;
+  abstract generate(params: any): Surface[];
 }

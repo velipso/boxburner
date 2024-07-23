@@ -23,38 +23,191 @@ export class PlainBox extends GeneratorBase {
   defaultParams() {
     return {
       thickness: 3,
-      width: 100,
-      height: 100
+      edges: [{
+        kind: 'boxJoint',
+        length: 100,
+        angle: 90,
+        surroundingSpaces: 2,
+        edgeWidth: 1,
+        extraLength: 0,
+        finger: 2,
+        play: 0,
+        space: 2,
+        width: 1
+      }, {
+        kind: 'plain',
+        length: 50
+      }, {
+        kind: 'boxJoint',
+        length: 100,
+        angle: 90,
+        surroundingSpaces: 2,
+        edgeWidth: 1,
+        extraLength: 0,
+        finger: 2,
+        play: 0,
+        space: 2,
+        width: 1
+      }, {
+        kind: 'plain',
+        length: 50
+      }]
     };
   }
 
   schema() {
     return {
       properties: {
-        thickness: { type: 'float64' },
-        width: { type: 'float64' },
-        height: { type: 'float64' },
+        thickness: {
+          type: 'float64' as const,
+          metadata: {
+            default: 3,
+            title: 'Thickness (mm)',
+          },
+        },
+        edges: {
+          elements: {
+            discriminator: 'kind',
+            mapping: {
+              plain: {
+                properties: {
+                  kind: {
+                    type: 'string' as const,
+                    metadata: {
+                      default: 'plain',
+                      title: 'Plain',
+                    },
+                  },
+                  length: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 100,
+                      title: 'Length (mm)',
+                    },
+                  },
+                },
+                metadata: {
+                  title: 'Plain',
+                  order: ['length'],
+                }
+              },
+              boxJoint: {
+                properties: {
+                  kind: {
+                    type: 'string' as const,
+                    metadata: {
+                      default: 'boxJoint',
+                      title: 'Box Joint',
+                    },
+                  },
+                  length: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 100,
+                      title: 'Length (mm)',
+                    },
+                  },
+                  angle: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 90,
+                      title: 'Angle',
+                    },
+                  },
+                  surroundingSpaces: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 2,
+                      title: 'Surrounding Space',
+                    },
+                  },
+                  edgeWidth: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 1,
+                      title: 'Edge Width (multiples of thickness)',
+                    },
+                  },
+                  extraLength: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 0,
+                      title: 'Extra Length (multiples of thickness)',
+                    },
+                  },
+                  finger: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 2,
+                      title: 'Finger (multiples of thickness)',
+                    },
+                  },
+                  play: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 0,
+                      title: 'Play (multiples of thickness)',
+                    },
+                  },
+                  space: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 2,
+                      title: 'Space (multiples of thickness)',
+                    },
+                  },
+                  width: {
+                    type: 'float64' as const,
+                    metadata: {
+                      default: 1,
+                      title: 'Width (multiples of thickness)',
+                    },
+                  },
+                },
+                metadata: {
+                  title: 'Box Joint',
+                  order: [
+                    'length', 'angle', 'surroundingSpaces', 'edgeWidth', 'extraLength', 'finger',
+                    'play', 'space', 'width'
+                  ],
+                }
+              }
+            },
+            metadata: {
+              default: 'plain',
+              order: ['plain', 'boxJoint'],
+            }
+          },
+          metadata: {
+            default: 4,
+            title: 'Edges',
+            itemTitle: 'Edge {}',
+          }
+        }
       },
       metadata: {
-        keyOrder: ['thickness', 'width', 'height'],
-        titles: {
-          thickness: 'Material Thickness (mm)',
-          width: 'Outer Width (mm)',
-          height: 'Outer Height (mm)'
-        }
+        order: ['thickness', 'edges'],
       }
-    } as const;
+    };
   }
 
-  generate({ thickness, width, height }: any) {
-    return new Surface(
-      thickness,
-      new DrawBuilder()
-        .lineTo([width, 0])
-        .lineTo([width, height])
-        .lineTo([0, height])
-        .lineTo([0, 0])
-        .build()
-    );
+  generate({ thickness, edges }: any) {
+    if (edges.length < 3) {
+      throw new Error('Need at least 3 edges');
+    }
+    const db = new DrawBuilder();
+    const dang = -360 / edges.length;
+    for (const edge of edges) {
+      switch (edge.kind) {
+        case 'plain':
+          db.forward(0, edge.length);
+          break;
+        case 'boxJoint':
+          db.forward(0, edge.length);
+          break;
+      }
+      db.forward(dang, 0);
+    }
+    return [new Surface(thickness, db.close().build())];
   }
 }

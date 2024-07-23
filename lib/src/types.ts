@@ -29,42 +29,183 @@ export interface ITextCommand {
 }
 
 export interface JSONTypeDefCommon {
-  nullable?: boolean;
+  nullable?: true;
   metadata?: any;
 }
 
-export interface JSONTypeDefTypeBoolean extends JSONTypeDefCommon {
-  type: 'boolean';
-}
+export type JSONTypeDefTypeBoolean =
+  {
+    type: 'boolean';
+    nullable?: false;
+    metadata: {
+      default: boolean;
+      [key: string]: any;
+    };
+  } |
+  {
+    type: 'boolean';
+    nullable: true;
+    metadata: {
+      default: boolean | null;
+      [key: string]: any;
+    }
+  };
 
-export interface JSONTypeDefTypeString extends JSONTypeDefCommon {
-  type: 'string';
-}
+export type JSONTypeDefTypeString =
+  {
+    type: 'string';
+    nullable?: false;
+    metadata: {
+      default: string;
+      [key: string]: any;
+    };
+  } |
+  {
+    type: 'string';
+    nullable: true;
+    metadata: {
+      default: string | null;
+      [key: string]: any;
+    }
+  };
 
-export interface JSONTypeDefTypeFloat64 extends JSONTypeDefCommon {
-  type: 'float64';
-}
+export type JSONTypeDefTypeFloat64 =
+  {
+    type: 'float64';
+    nullable?: false;
+    metadata: {
+      default: number;
+      title?: string;
+      [key: string]: any;
+    };
+  } |
+  {
+    type: 'float64';
+    nullable: true;
+    metadata: {
+      default: number | null;
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    }
+  };
 
-export interface JSONTypeDefTypeInt32 extends JSONTypeDefCommon {
-  type: 'int32';
-}
+export type JSONTypeDefTypeInt32 =
+  {
+    type: 'int32';
+    nullable?: false;
+    metadata: {
+      default: number;
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    };
+  } |
+  {
+    type: 'int32';
+    nullable: true;
+    metadata: {
+      default: number | null;
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    }
+  };
 
-export interface JSONTypeDefEnum extends JSONTypeDefCommon {
-  enum: string[];
-}
+export type JSONTypeDefEnum =
+  {
+    enum: string[];
+    nullable?: false;
+    metadata: {
+      default: string;
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    };
+  } |
+  {
+    enum: string[];
+    nullable: true;
+    metadata: {
+      default: string | null;
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    }
+  };
 
-export interface JSONTypeDefElements extends JSONTypeDefCommon {
-  elements: JSONTypeDef;
-}
+export type JSONTypeDefElements =
+  {
+    elements: JSONTypeDef;
+    nullable?: false;
+    metadata: {
+      default: number; // count of elements
+      title?: string;
+      itemTitle?: string;
+      description?: string;
+      [key: string]: any;
+    };
+  } |
+  {
+    elements: JSONTypeDef;
+    nullable: true;
+    metadata: {
+      default: number | null;
+      title?: string;
+      itemTitle?: string;
+      description?: string;
+      [key: string]: any;
+    }
+  };
 
-export interface JSONTypeDefProperties extends JSONTypeDefCommon {
-  properties: { [property: string]: JSONTypeDef };
-}
+export type JSONTypeDefProperties =
+  {
+    properties: { [property: string]: JSONTypeDef };
+    nullable?: false;
+    metadata: {
+      order: string[];
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    };
+  } |
+  {
+    properties: { [property: string]: JSONTypeDef };
+    nullable: true;
+    metadata: {
+      default?: null;
+      order: string[];
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    };
+  };
 
-export interface JSONTypeDefDiscriminator extends JSONTypeDefCommon {
-  discriminator: string;
-  mapping: { [value: string]: JSONTypeDef };
-}
+export type JSONTypeDefDiscriminator =
+  {
+    discriminator: string;
+    mapping: { [value: string]: JSONTypeDefProperties };
+    nullable?: false;
+    metadata: {
+      default: string;
+      order: string[];
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    };
+  } |
+  {
+    discriminator: string;
+    mapping: { [value: string]: JSONTypeDefProperties };
+    nullable: true;
+    metadata: {
+      default: string | null;
+      order: string[];
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    }
+  };
 
 export interface JSONTypeDefRef extends JSONTypeDefCommon {
   ref: string;

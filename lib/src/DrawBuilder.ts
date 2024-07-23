@@ -9,6 +9,7 @@ import { IDrawCommand, Vec2 } from './types';
 
 export class DrawBuilder {
   commands: IDrawCommand[] = [];
+  angle = 0;
 
   cursor(): Vec2 {
     if (this.commands.length <= 0) {
@@ -20,6 +21,11 @@ export class DrawBuilder {
   lineTo(to: Vec2) {
     this.commands.push({ kind: 'L', to });
     return this;
+  }
+
+  lineToRelative(delta: Vec2) {
+    const here = this.cursor();
+    return this.lineTo([here[0] + delta[0], here[1] + delta[1]]);
   }
 
   quadCurveTo(c1: Vec2, to: Vec2) {
@@ -34,6 +40,23 @@ export class DrawBuilder {
 
   curveTo(c1: Vec2, c2: Vec2, to: Vec2) {
     this.commands.push({ kind: 'C', c1, c2, to });
+    return this;
+  }
+
+  forward(dangle: number, dist = 0) {
+    this.angle += dangle;
+    const a = this.angle * Math.PI / 180;
+    if (dist !== 0) {
+      this.lineToRelative([dist * Math.sin(a), dist * Math.cos(a)]);
+    }
+    return this;
+  }
+
+  close() {
+    const here = this.cursor();
+    if (here[0] !== 0 || here[1] !== 0) {
+      this.lineTo([0, 0]);
+    }
     return this;
   }
 
