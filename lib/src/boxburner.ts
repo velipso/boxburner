@@ -6,13 +6,10 @@
 //
 
 export * from './generators';
+export * from './edges';
+export * from './documents';
 export * from './Surface';
+export * from './SurfaceBuilder';
 export * from './DrawBuilder';
 export * from './types';
-import { PlainBox } from './generators';
-
-export function test() {
-  const p = new PlainBox();
-  console.log(p.schema());
-  console.log(p.generate({ thickness: 3, width: 50, height: 30 }));
-}
+export * from './util';

@@ -6,11 +6,10 @@
 //
 
 import { Surface } from '../Surface';
-import { JSONTypeDef } from '../types';
+import { JSONTypeDef, IGeneratorSettings } from '../types';
 
 export abstract class GeneratorBase {
   abstract name(): string;
-  abstract defaultParams(): any;
   abstract schema(): JSONTypeDef;
-  abstract generate(params: any): Surface[];
+  abstract generate(settings: IGeneratorSettings, params: any): Surface[];
 }

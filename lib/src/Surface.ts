@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { IDrawCommand, ITextCommand, Vec2 } from './types';
+import { IDrawCommand, IOffsetDrawCommands, ITextCommand, Vec2 } from './types';
 
 function validateClosedPath(hint: string, commands: IDrawCommand[]) {
   if (commands.length <= 0) {
@@ -116,15 +116,17 @@ function drawCommandsBoundingBox(commands: IDrawCommand[]): [Vec2, Vec2] {
 export class Surface {
   thickness: number;
   border: IDrawCommand[];
-  holes: IDrawCommand[][];
-  cuts: IDrawCommand[][];
+  holes: IOffsetDrawCommands[];
+  cuts: IOffsetDrawCommands[];
+  scores: IOffsetDrawCommands[];
   text: ITextCommand[];
 
   constructor(
     thickness: number,
     border: IDrawCommand[],
-    holes: IDrawCommand[][] = [],
-    cuts: IDrawCommand[][] = [],
+    holes: IOffsetDrawCommands[] = [],
+    cuts: IOffsetDrawCommands[] = [],
+    scores: IOffsetDrawCommands[] = [],
     text: ITextCommand[] = []
   ) {
     validateClosedPath('Surface border', border);
@@ -133,8 +135,8 @@ export class Surface {
     }
     for (let i = 0; i < holes.length; i++) {
       const hint = `Surface hole ${i}`;
-      validateClosedPath(hint, holes[i]);
-      if (isClockwise(holes[i])) {
+      validateClosedPath(hint, holes[i].commands);
+      if (isClockwise(holes[i].commands)) {
         throw new Error(`${hint}: Points must be in clockwise order for holes`);
       }
     }
@@ -142,6 +144,7 @@ export class Surface {
     this.border = border;
     this.holes = holes;
     this.cuts = cuts;
+    this.scores = scores;
     this.text = text;
   }
 

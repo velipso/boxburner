@@ -6,6 +6,9 @@
 //
 
 import { IDrawCommand, Vec2 } from './types';
+import { forwardVec2 } from './util';
+
+const eps = 0.0000001;
 
 export class DrawBuilder {
   commands: IDrawCommand[] = [];
@@ -19,6 +22,32 @@ export class DrawBuilder {
   }
 
   lineTo(to: Vec2) {
+    const last = this.commands[this.commands.length - 1];
+    if (last && last.kind === 'L') {
+      // combine colliner segments
+      const p1: Vec2 = this.commands[this.commands.length - 2]?.to ?? [0, 0];
+      const p2 = last.to;
+      const p3 = to;
+
+      if (
+        Math.abs(p1[0] - p3[0]) < eps &&
+        Math.abs(p1[1] - p3[1]) < eps
+      ) {
+        // this line is undo'ing previous line, so remove it
+        this.commands.pop();
+        return this;
+      }
+
+      const dx1 = p1[0] - p2[0];
+      const dy1 = p1[1] - p2[1];
+      const dx2 = p2[0] - p3[0];
+      const dy2 = p2[1] - p3[1];
+      if (Math.abs(dx1 * dy2 - dx2 * dy1) < eps) {
+        // points are collinear, so update last line instead of drawing an additional line
+        last.to = to;
+        return this;
+      }
+    }
     this.commands.push({ kind: 'L', to });
     return this;
   }
@@ -43,19 +72,51 @@ export class DrawBuilder {
     return this;
   }
 
-  forward(dangle: number, dist = 0) {
-    this.angle += dangle;
-    const a = this.angle * Math.PI / 180;
+  turn(dangle: number) {
+    this.angle = (((this.angle + dangle) % 360) + 360) % 360;
+    return this;
+  }
+
+  forward(dist: number) {
     if (dist !== 0) {
-      this.lineToRelative([dist * Math.sin(a), dist * Math.cos(a)]);
+      this.lineToRelative(forwardVec2([0, 0], this.angle, dist));
     }
     return this;
   }
 
   close() {
-    const here = this.cursor();
-    if (here[0] !== 0 || here[1] !== 0) {
-      this.lineTo([0, 0]);
+    this.lineTo([0, 0]);
+    const first = this.commands[0];
+    const last = this.commands[this.commands.length - 1];
+    if (last?.kind === 'L' && first?.kind === 'L') {
+      // combine colliner segments
+      const p1: Vec2 = this.commands[this.commands.length - 2]?.to ?? [0, 0];
+      const p2 = last.to; // should be [0, 0]
+      const p3 = first.to;
+      const dx1 = p1[0] - p2[0];
+      const dy1 = p1[1] - p2[1];
+      const dx2 = p2[0] - p3[0];
+      const dy2 = p2[1] - p3[1];
+      if (
+        Math.abs(p1[0] - p3[0]) < eps &&
+        Math.abs(p1[1] - p3[1]) < eps
+      ) {
+        this.commands.shift();
+      } else if (Math.abs(dx1 * dy2 - dx2 * dy1) >= eps) {
+        // points aren't collinear, so bail
+        return this;
+      }
+      this.commands.pop();
+      for (const cmd of this.commands) {
+        cmd.to[0] -= p1[0];
+        cmd.to[1] -= p1[1];
+        if (cmd.kind === 'C') {
+          cmd.c1[0] -= p1[0];
+          cmd.c1[1] -= p1[1];
+          cmd.c2[0] -= p1[0];
+          cmd.c2[1] -= p1[1];
+        }
+      }
     }
     return this;
   }

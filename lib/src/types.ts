@@ -28,6 +28,11 @@ export interface ITextCommand {
   text: string;
 }
 
+export interface IOffsetDrawCommands {
+  offset: Vec2;
+  commands: IDrawCommand[];
+}
+
 export interface JSONTypeDefCommon {
   nullable?: true;
   metadata?: any;
@@ -233,3 +238,63 @@ export type JSONTypeDef =
   | JSONTypeDefDiscriminator;
 
 export type JSONTypeDefSchema = JSONTypeDef & { definitions?: { [name: string]: JSONTypeDef } };
+
+export interface IGeneratorSettings {
+  thickness: number;
+  kerf: number;
+  units: 'mm' | 'in';
+  fileFormat: 'svg';
+  debug: boolean;
+}
+
+export const SettingsTypeDef: JSONTypeDefProperties = {
+  properties: {
+    thickness: {
+      type: 'float64' as const,
+      metadata: {
+        default: 3,
+        title: 'Material Thickness (units)',
+      },
+    },
+    kerf: {
+      type: 'float64' as const,
+      metadata: {
+        default: 0.1,
+        title: 'Kerf',
+        description: 'Thickness of material removed by cutting tool (units)',
+      },
+    },
+    units: {
+      enum: ['mm', 'in'],
+      metadata: {
+        default: 'mm',
+        title: 'Units',
+      },
+    },
+    fileFormat: {
+      enum: ['svg'],
+      metadata: {
+        default: 'svg',
+        title: 'File Format',
+      },
+    },
+    debug: {
+      type: 'boolean' as const,
+      metadata: {
+        default: false,
+        title: 'Debug',
+      },
+    },
+  },
+  metadata: {
+    title: 'Settings',
+    order: ['thickness', 'kerf', 'units', 'fileFormat', 'debug'],
+    startHidden: true,
+  },
+};
+
+export interface IExportFile {
+  mimeType: string;
+  extension: string;
+  data: Uint8Array;
+}

@@ -6,11 +6,11 @@ import React, {
   useRef,
   createContext,
   useContext,
-  ReactNode
+  ReactNode,
+  ChangeEventHandler
 } from 'react';
 import {
-  GeneratorBase,
-  PlainBox,
+  allGenerators,
   JSONTypeDefSchema,
   JSONTypeDefEnum,
   JSONTypeDefElements,
@@ -18,15 +18,43 @@ import {
   JSONTypeDefDiscriminator,
   JSONTypeDef,
   Surface,
-  Vec2
+  Vec2,
+  SettingsTypeDef,
+  IDrawCommand,
+  exportDocument
 } from '@velipso/boxburner';
 import AutoAnimate from './AutoAnimate';
 
 interface IAppContext {
+  units: string;
   debug: boolean;
 }
 
-const AppContext = createContext<IAppContext | null>(null)
+const AppContext = createContext<IAppContext | null>(null);
+
+const colorPalette: { [color: string]: string } = {
+  black: '#000000',
+  gray: '#666666',
+  red: '#ff0000',
+  orange: '#ff7700',
+  yellow: '#ffff00',
+  green: '#00ff00',
+  teal: '#00ffff',
+  blue: '#0000ff',
+  purple: '#ff00ff',
+};
+
+const availableColors: string[] = [
+  'black',
+  'gray',
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'teal',
+  'blue',
+  'purple'
+];
 
 function useAppContext() {
   const ctx = useContext(AppContext);
@@ -347,7 +375,11 @@ function InputProperties({
         />
       )}
       {typedef.metadata.order.map((k) => (
-        <div key={k} className="tab" style={styleHide(hide || innerHide)}>
+        <div
+          key={k}
+          className={typedef.metadata.untabParams && k === 'params' ? undefined : 'tab'}
+          style={styleHide(hide || innerHide)}
+        >
           <JTDEditValue
             schema={schema}
             typedef={typedef.properties[k]}
@@ -463,8 +495,8 @@ function HideButton({
 
 function MetaTitle({
   metadata: {
-    title,
-    description
+    title: titleOrig,
+    description: descriptionOrig
   },
   postfix,
   hide,
@@ -480,17 +512,33 @@ function MetaTitle({
   setHide?(hide: boolean): void;
   children?: ReactNode;
 }) {
+  const { units } = useAppContext();
+  const title = titleOrig?.replace(/\(units\)/g, `(${units})`);
+  const description = descriptionOrig?.replace(/\(units\)/g, `(${units})`);
   return (
     <>
       {title && (
         <div className={setHide ? 'input-title hide-wrap' : 'input-title'}>
           {setHide && <HideButton hide={hide} setHide={setHide} />}
           <div className="title">
-            {postfix ? `${title} ${postfix}` : title}
+            <span
+              style={setHide ? { cursor: 'pointer', userSelect: 'none' } : undefined}
+              onClick={setHide ? () => {
+                setHide(!hide);
+              } : undefined}
+            >
+              {postfix ? `${title} ${postfix}` : title}
+            </span>
             {description && (
               <>
                 {' '}
-                <span className="description" title={description}>ⓘ</span>
+                <span
+                  className="description"
+                  onClick={() => { alert(description); } }
+                  title={description}
+                >
+                  ⓘ
+                </span>
               </>
             )}:
             {children && <>{' '}{children}</>}
@@ -813,65 +861,58 @@ function wrapFillText(
   }
 }
 
+function drawPathFromCommands(
+  ctx: CanvasRenderingContext2D,
+  offset: Vec2,
+  commands: IDrawCommand[]
+) {
+  ctx.beginPath();
+  ctx.moveTo(offset[0], offset[1]);
+  for (const cmd of commands) {
+    switch (cmd.kind) {
+      case 'L':
+        ctx.lineTo(offset[0] + cmd.to[0], offset[1] + cmd.to[1]);
+        break;
+      case 'C':
+        ctx.bezierCurveTo(
+          offset[0] + cmd.c1[0], offset[1] + cmd.c1[1],
+          offset[0] + cmd.c2[0], offset[1] + cmd.c2[1],
+          offset[0] + cmd.to[0], offset[1] + cmd.to[1]
+        );
+        break;
+    }
+  }
+  ctx.closePath();
+}
+
+interface ISurfaceDetails {
+  surface: Surface;
+  cutColor: string;
+  holeColor: string;
+  scoreColor: string;
+}
+
+interface ISurfaceItem {
+  surface: Surface;
+  boundingBox: [Vec2, Vec2];
+  boundingBoxSize: Vec2;
+  area: number;
+  offset: Vec2;
+  cutColor: string;
+  holeColor: string;
+  scoreColor: string;
+};
+
 function Canvas({
   units,
-  surfaces,
+  items,
   error
 }: {
   units: string;
-  surfaces: Surface[];
+  items: ISurfaceItem[];
   error: string;
 }) {
   const [cnv, setCnv] = useState<HTMLCanvasElement | null>(null);
-  const items = useMemo(
-    () => {
-      const items: {
-        surface: Surface;
-        boundingBox: [Vec2, Vec2];
-        boundingBoxSize: Vec2;
-        area: number;
-        offset: Vec2;
-      }[] = [];
-      let totalArea = 0;
-      for (const surface of surfaces) {
-        const boundingBox = surface.borderBoundingBox();
-        const area =
-          (boundingBox[1][0] - boundingBox[0][0]) *
-          (boundingBox[1][1] - boundingBox[0][1]);
-        totalArea += area;
-        items.push({
-          surface,
-          boundingBox,
-          boundingBoxSize: [
-            boundingBox[1][0] - boundingBox[0][0],
-            boundingBox[1][1] - boundingBox[0][1]
-          ],
-          area,
-          offset: [0, 0]
-        });
-      }
-
-      // layout parts in roughly a square
-      const targetWidth = Math.sqrt(totalArea);
-      let rowHeight = 0;
-      let nextOffset: Vec2 = [0, 0];
-      let spacing = 10;
-      for (const it of items) {
-        it.offset[0] = nextOffset[0] - it.boundingBox[0][0];
-        it.offset[1] = nextOffset[1] - it.boundingBox[0][1];
-        rowHeight = Math.max(rowHeight, it.boundingBoxSize[1]);
-        if (nextOffset[0] + spacing + it.boundingBoxSize[0] <= targetWidth) {
-          nextOffset[0] += spacing + it.boundingBoxSize[0];
-        } else {
-          nextOffset[0] = 0;
-          nextOffset[1] += spacing + rowHeight;
-          rowHeight = 0;
-        }
-      }
-      return items;
-    },
-    [surfaces]
-  );
   const canvasRef = useCallback(
     (cnv: HTMLCanvasElement | null) => {
       setCnv(cnv);
@@ -974,26 +1015,55 @@ function Canvas({
           ctx.stroke();
         }
 
-        ctx.beginPath();
-        ctx.moveTo(offset[0], offset[1]);
-        for (const cmd of surface.border) {
-          switch (cmd.kind) {
-            case 'L':
-              ctx.lineTo(offset[0] + cmd.to[0], offset[1] + cmd.to[1]);
-              break;
-            case 'C':
-              ctx.bezierCurveTo(
-                offset[0] + cmd.c1[0], offset[1] + cmd.c1[1],
-                offset[0] + cmd.c2[0], offset[1] + cmd.c2[1],
-                offset[0] + cmd.to[0], offset[1] + cmd.to[1]
-              );
-              break;
+        drawPathFromCommands(ctx, offset, surface.border);
+        ctx.lineWidth = 3 * dpr / camera.zoomFactor();
+        ctx.strokeStyle = colorPalette[it.cutColor];
+        ctx.stroke();
+
+        for (const hole of surface.holes) {
+          drawPathFromCommands(
+            ctx,
+            [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
+            hole.commands
+          );
+          ctx.lineWidth = 3 * dpr / camera.zoomFactor();
+          ctx.strokeStyle = colorPalette[it.holeColor];
+          ctx.stroke();
+        }
+      }
+
+      if (debug) {
+        for (const it of items) {
+          const { surface, offset } = it;
+          const point = (x: number, y: number, color: string) => {
+            ctx.beginPath();
+            ctx.arc(x, y, 2 * dpr / camera.zoomFactor(), 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+          };
+          const pointCommands = (offset: Vec2, commands: IDrawCommand[], color: string) => {
+            for (const cmd of commands) {
+              switch (cmd.kind) {
+                case 'L':
+                  point(offset[0] + cmd.to[0], offset[1] + cmd.to[1], color);
+                  break;
+                case 'C':
+                  point(offset[0] + cmd.c1[0], offset[1] + cmd.c1[1], color);
+                  point(offset[0] + cmd.c2[0], offset[1] + cmd.c2[1], color);
+                  point(offset[0] + cmd.to[0], offset[1] + cmd.to[1], color);
+                  break;
+              }
+            }
+          };
+          pointCommands(offset, surface.border, '#07f');
+          for (const hole of surface.holes) {
+            pointCommands(
+              [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
+              hole.commands,
+              '#0f7'
+            );
           }
         }
-        ctx.closePath();
-        ctx.lineWidth = 3 * dpr / camera.zoomFactor();
-        ctx.strokeStyle = '#000';
-        ctx.stroke();
       }
 
       if (error) {
@@ -1154,69 +1224,73 @@ function Canvas({
   );
 }
 
-function App() {
-  const generators = useMemo(
-    (): GeneratorBase[] => [
-      new PlainBox(),
-    ],
-    []
+function ImportExportModal({
+  value,
+  onCancel,
+  onImport
+}: {
+  value: string;
+  onCancel(): void;
+  onImport?(data: any): void;
+}) {
+  const [text, setText] = useState(value);
+  const onChange: ChangeEventHandler<HTMLTextAreaElement> = useCallback(
+    (e) => {
+      setText(e.currentTarget.value);
+    },
+    [setText]
   );
+  const stopPropagation = useCallback((e: { stopPropagation(): void }) => {
+    e.stopPropagation();
+  }, []);
+  return (
+    <>
+      <div className="modal-background" onClick={onCancel} />
+      <div className="modal-foreground" onClick={onCancel}>
+        <div className="inner" onClick={stopPropagation}>
+          <button className="close" type="button" onClick={onCancel}>
+            &times;
+          </button>
+          {onImport
+            ? <p>Paste your settings below:</p>
+            : <p>Copy your settings below:</p>
+          }
+          <textarea value={text} onChange={onChange} readOnly={!onImport} spellCheck={false} />
+          {onImport &&
+            <button
+              className="import"
+              onClick={
+                () => {
+                try {
+                  onImport(JSON.parse(text));
+                } catch (err) {
+                  console.error(err);
+                  alert('Invalid settings');
+                }
+              }}
+            >
+              ⍈ Import
+            </button>
+          }
+        </div>
+      </div>
+    </>
+  );
+}
+
+function App() {
   const schema = useMemo(
     (): JSONTypeDefSchema => ({
       definitions: {
         // TODO: this
       },
       properties: {
-        settings: {
-          properties: {
-            thickness: {
-              type: 'float64',
-              metadata: {
-                default: 3,
-                title: 'Material Thickness',
-              },
-            },
-            kerf: {
-              type: 'float64',
-              metadata: {
-                default: 0.1,
-                title: 'Kerf',
-                description: 'Thickness of material removed by cutting tool',
-              },
-            },
-            units: {
-              enum: ['mm', 'in'],
-              metadata: {
-                default: 'mm',
-                title: 'Units',
-              },
-            },
-            fileFormat: {
-              enum: ['svg'],
-              metadata: {
-                default: 'svg',
-                title: 'File Format',
-              },
-            },
-            debug: {
-              type: 'boolean',
-              metadata: {
-                default: false,
-                title: 'Debug',
-              },
-            },
-          },
-          metadata: {
-            title: 'Settings',
-            order: ['thickness', 'kerf', 'units', 'fileFormat', 'debug'],
-            startHidden: true,
-          },
-        },
+        settings: SettingsTypeDef,
         generators: {
           elements: {
             discriminator: 'kind',
             mapping:
-              generators.map((g): { [name: string]: JSONTypeDefProperties } => ({
+              allGenerators.map((g): { [name: string]: JSONTypeDefProperties } => ({
                 [g.name()]: {
                   properties: {
                     kind: {
@@ -1226,17 +1300,48 @@ function App() {
                         title: g.name(),
                       },
                     },
+                    colors: {
+                      properties: {
+                        cutColor: {
+                          enum: availableColors,
+                          metadata: {
+                            default: 'black',
+                            title: 'Cut Color',
+                          },
+                        },
+                        holeColor: {
+                          enum: availableColors,
+                          metadata: {
+                            default: 'blue',
+                            title: 'Hole Color',
+                          },
+                        },
+                        scoreColor: {
+                          enum: availableColors,
+                          metadata: {
+                            default: 'red',
+                            title: 'Score Color',
+                          },
+                        },
+                      },
+                      metadata: {
+                        title: 'Colors',
+                        order: ['cutColor', 'holeColor', 'scoreColor'],
+                        startHidden: true,
+                      },
+                    },
                     params: g.schema()
                   },
                   metadata: {
-                    order: ['params'],
+                    order: ['colors', 'params'],
+                    untabParams: true,
                   },
                 }
               }))
               .reduce((a, b) => ({ ...a, ...b }), {}),
             metadata: {
-              default: generators[0].name(),
-              order: generators.map(g => g.name()),
+              default: allGenerators[0].name(),
+              order: allGenerators.map(g => g.name()),
             },
           },
           metadata: {
@@ -1250,23 +1355,29 @@ function App() {
         order: ['settings', 'generators'],
       }
     }),
-    [generators]
+    []
   );
   const [params, setParams] = useState(() => newJTD(schema));
-  const [surfaces, setSurfaces] = useState<Surface[] | null>(null)
+  const [jtdKey, setJtdKey] = useState(1);
+  const [surfaces, setSurfaces] = useState<ISurfaceDetails[] | null>(null)
   const [generateError, setGenerateError] = useState('');
   useEffect(
     () => {
-      const surfaces: Surface[] = [];
+      const surfaces: ISurfaceDetails[] = [];
       const errors: string[] = [];
       let i = 1;
       for (const p of params.generators) {
-        const generator = generators.find(g => g.name() === p.kind);
+        const generator = allGenerators.find(g => g.name() === p.kind);
         if (generator) {
           try {
-            const ss = generator.generate(p.params);
-            for (const s of ss) {
-              surfaces.push(s);
+            const ss = generator.generate(params.settings, p.params);
+            for (const surface of ss) {
+              surfaces.push({
+                surface,
+                cutColor: p.colors.cutColor,
+                holeColor: p.colors.holeColor,
+                scoreColor: p.colors.scoreColor
+              });
             }
           } catch (err) {
             console.error(err);
@@ -1280,30 +1391,136 @@ function App() {
     },
     [params, setSurfaces, setGenerateError]
   );
-  const onExport = useCallback(
+  const surfaceItems: ISurfaceItem[] | null = useMemo(
     () => {
-      console.log('export');
+      if (!surfaces) {
+        return null;
+      }
+      const items: ISurfaceItem[] = [];
+      let totalArea = 0;
+      for (const { surface, cutColor, holeColor, scoreColor } of surfaces) {
+        const boundingBox = surface.borderBoundingBox();
+        const area =
+          (boundingBox[1][0] - boundingBox[0][0]) *
+          (boundingBox[1][1] - boundingBox[0][1]);
+        totalArea += area;
+        items.push({
+          surface,
+          boundingBox,
+          boundingBoxSize: [
+            boundingBox[1][0] - boundingBox[0][0],
+            boundingBox[1][1] - boundingBox[0][1]
+          ],
+          area,
+          offset: [0, 0],
+          cutColor,
+          holeColor,
+          scoreColor,
+        });
+      }
+
+      // layout parts in roughly a square
+      const targetWidth = Math.sqrt(totalArea);
+      let rowHeight = 0;
+      let nextOffset: Vec2 = [0, 0];
+      let spacing = 10;
+      for (const it of items) {
+        it.offset[0] = nextOffset[0] - it.boundingBox[0][0];
+        it.offset[1] = nextOffset[1] - it.boundingBox[0][1];
+        rowHeight = Math.max(rowHeight, it.boundingBoxSize[1]);
+        if (nextOffset[0] + spacing + it.boundingBoxSize[0] <= targetWidth) {
+          nextOffset[0] += spacing + it.boundingBoxSize[0];
+        } else {
+          nextOffset[0] = 0;
+          nextOffset[1] += spacing + rowHeight;
+          rowHeight = 0;
+        }
+      }
+      return items;
     },
-    [generators, params]
+    [surfaces]
   );
   const onDownload = useCallback(
     () => {
-      console.log('download');
+      if (!surfaceItems || surfaceItems.length <= 0) {
+        alert('Nothing to export!');
+        return;
+      }
+      const doc = exportDocument(params.settings);
+      for (const { offset, surface, cutColor, holeColor, scoreColor } of surfaceItems) {
+        doc.addSurface(
+          offset,
+          surface,
+          colorPalette[cutColor],
+          colorPalette[holeColor],
+          colorPalette[scoreColor]
+        );
+      }
+      const { mimeType, extension, data } = doc.toFile();
+      const blob = new Blob([data], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
+      setTimeout(() => { window.URL.revokeObjectURL(url); }, 30000);
+      const a = document.createElement('a');
+      a.href = url;
+      const now = new Date();
+      const dig2 = (n: number) => `${n < 10 ? '0' : ''}${n}`;
+      const date = `${now.getFullYear()}${dig2(now.getMonth() + 1)}${dig2(now.getDate())}`;
+      const time = `${dig2(now.getHours())}${dig2(now.getMinutes())}${dig2(now.getSeconds())}`;
+      a.download = `${params.generators[0].kind}-${date}-${time}${extension}`;
+      document.body.appendChild(a);
+      a.style.display = 'none';
+      a.click();
+      a.remove();
     },
-    [generators, params]
+    [params, surfaceItems]
+  );
+  const [importModal, setImportModal] = useState(false);
+  const onImport = useCallback(
+    () => {
+      setImportModal(true);
+    },
+    []
+  );
+  const onImportData = useCallback(
+    (params: any) => {
+      setParams(params);
+      setImportModal(false);
+      setSurfaces(null);
+      setJtdKey(v => v + 1);
+    },
+    [setParams]
+  );
+  const [exportModal, setExportModal] = useState('');
+  const onExport = useCallback(
+    () => {
+      setExportModal(JSON.stringify(params, null, 2));
+    },
+    [params, setExportModal]
   );
   const appContext = useMemo(
     (): IAppContext => ({
+      units: params.settings.units,
       debug: params.settings.debug,
     }),
     [params]
   );
   return (
     <AppContext.Provider value={appContext}>
+      {exportModal && (
+        <ImportExportModal value={exportModal} onCancel={() => { setExportModal(''); }} />
+      )}
+      {importModal && (
+        <ImportExportModal
+          value=''
+          onCancel={() => { setImportModal(false); }}
+          onImport={onImportData}
+        />
+      )}
       <nav>
         <h2><a href="https://github.com/velipso/boxburner" target="_blank">boxburner</a></h2>
         <div className="nav-main">
           <JTDEditor
+            key={jtdKey}
             schema={schema}
             value={params}
             setValue={setParams}
@@ -1313,15 +1530,18 @@ function App() {
           <button onClick={onDownload}>
             ↓ Download
           </button>
+          <button onClick={onImport}>
+            ⍈ Import
+          </button>
           <button onClick={onExport}>
-            ⧉ Export URL
+            ⍇ Export
           </button>
         </div>
       </nav>
-      <main>
-        {surfaces && (
+      <main key={jtdKey}>
+        {surfaceItems && (
           <Canvas
-            surfaces={surfaces}
+            items={surfaceItems}
             error={generateError}
             units={params.settings.units}
           />

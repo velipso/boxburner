@@ -5,5 +5,11 @@
 // SPDX-License-Identifier: 0BSD
 //
 
+import { GeneratorBase } from './GeneratorBase';
+import { PlainRectangle } from './PlainRectangle';
 export * from './GeneratorBase';
-export * from './PlainBox';
+export * from './PlainRectangle';
+
+export const allGenerators: GeneratorBase[] = [
+	new PlainRectangle(),
+];
