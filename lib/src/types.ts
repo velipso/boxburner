@@ -39,6 +39,8 @@ export type JSONTypeDefTypeBoolean =
     nullable?: false;
     metadata: {
       default: boolean;
+      title?: string;
+      description?: string;
       [key: string]: any;
     };
   } |
@@ -47,6 +49,8 @@ export type JSONTypeDefTypeBoolean =
     nullable: true;
     metadata: {
       default: boolean | null;
+      title?: string;
+      description?: string;
       [key: string]: any;
     }
   };
@@ -57,6 +61,8 @@ export type JSONTypeDefTypeString =
     nullable?: false;
     metadata: {
       default: string;
+      title?: string;
+      description?: string;
       [key: string]: any;
     };
   } |
@@ -65,6 +71,8 @@ export type JSONTypeDefTypeString =
     nullable: true;
     metadata: {
       default: string | null;
+      title?: string;
+      description?: string;
       [key: string]: any;
     }
   };
@@ -76,6 +84,7 @@ export type JSONTypeDefTypeFloat64 =
     metadata: {
       default: number;
       title?: string;
+      description?: string;
       [key: string]: any;
     };
   } |
@@ -141,8 +150,9 @@ export type JSONTypeDefElements =
     metadata: {
       default: number; // count of elements
       title?: string;
-      itemTitle?: string;
       description?: string;
+      itemTitle?: string;
+      itemDescription?: string;
       [key: string]: any;
     };
   } |
@@ -152,8 +162,9 @@ export type JSONTypeDefElements =
     metadata: {
       default: number | null;
       title?: string;
-      itemTitle?: string;
       description?: string;
+      itemTitle?: string;
+      itemDescription?: string;
       [key: string]: any;
     }
   };

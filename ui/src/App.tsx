@@ -1,5 +1,13 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-//import assetLogo from './assets/asset.svg'
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+  createContext,
+  useContext,
+  ReactNode
+} from 'react';
 import {
   GeneratorBase,
   PlainBox,
@@ -12,25 +20,34 @@ import {
   Surface,
   Vec2
 } from '@velipso/boxburner';
+import AutoAnimate from './AutoAnimate';
 
-const generators: GeneratorBase[] = [
-  new PlainBox()
-];
+interface IAppContext {
+  debug: boolean;
+}
 
-const generatorOptions = generators.map(g => ({ label: g.name(), value: g }));
+const AppContext = createContext<IAppContext | null>(null)
 
-let debug = false;
+function useAppContext() {
+  const ctx = useContext(AppContext);
+  if (!ctx) {
+    throw new Error('Missing AppContext');
+  }
+  return ctx;
+}
 
 function styleHide(hide?: boolean) {
   return hide ? { display: 'none' } : undefined;
 }
 
 function Select<T>({
+  className,
   title,
   options,
   value,
   setValue
 }: {
+  className?: string;
   title?: string;
   options: { label: string, value: T }[];
   value: T;
@@ -46,6 +63,7 @@ function Select<T>({
   return <>
     {title && <div className="input-title">{title}:</div>}
     <select
+      className={className}
       value={options.findIndex(({value: v}) => v === value)}
       onChange={onChange}
     >
@@ -78,13 +96,13 @@ function InputNumber({
         setValue(v);
       }
     },
-    [setText]
+    [setText, setValue]
   );
   const v = parseFloat(text);
   const error = isNaN(v) || (integer && Math.round(v) !== v);
   return (
     <input
-      className={error ? 'error' : ''}
+      className={error ? 'number error' : 'number'}
       type='text'
       value={text}
       onChange={onChange}
@@ -94,6 +112,8 @@ function InputNumber({
 
 function InputEnum({
   typedef,
+  value,
+  setValue,
 }: {
   schema: JSONTypeDefSchema;
   typedef: JSONTypeDefEnum;
@@ -102,8 +122,14 @@ function InputEnum({
 }) {
   return (
     <>
-      <MetaTitle metadata={typedef.metadata} />
-      <p>enum</p>
+      <MetaTitle metadata={typedef.metadata}>
+        <Select
+          className='enum'
+          options={typedef.enum.map(e => ({ label: e, value: e }))}
+          value={value}
+          setValue={setValue}
+        />
+      </MetaTitle>
     </>
   );
 }
@@ -146,6 +172,7 @@ function InputElements({
   value: any[];
   setValue(v: any[] | ((prevValue: any[]) => any[])): void;
 }) {
+  const [keys, setKeys] = useState(() => values.map((_, i) => i));
   const onAdd = useCallback(
     () => {
       setValue(
@@ -155,20 +182,61 @@ function InputElements({
           return n;
         }
       );
+      setKeys(
+        (p: number[]) => {
+          const nextKey = p.reduce((a, b) => Math.max(a, b), 0) + 1;
+          const n = [...p];
+          n.push(nextKey);
+          return n;
+        }
+      );
     },
     [setValue, typedef]
   );
   const onRemove = useCallback(
     (index: number) => {
+      const update = (p: any[]) => {
+        const n = [...p];
+        n.splice(index, 1);
+        return n;
+      };
+      setValue(update);
+      setKeys(update);
+    },
+    [setValue, setKeys]
+  );
+  const onDuplicate = useCallback(
+    (index: number) => {
       setValue(
         (p: any[]) => {
           const n = [...p];
-          n.splice(index, 1);
+          n.splice(index, 0, JSON.parse(JSON.stringify(n[index])));
+          return n;
+        }
+      );
+      setKeys(
+        (p: number[]) => {
+          const nextKey = p.reduce((a, b) => Math.max(a, b), 0) + 1;
+          const n = [...p];
+          n.splice(index, 0, nextKey);
           return n;
         }
       );
     },
-    [setValue]
+    [setValue, setKeys]
+  );
+  const onMove = useCallback(
+    (index: number, dir: number) => {
+      const update = (p: any[]) => {
+        const n = [...p];
+        const i = n.splice(index, 1)[0];
+        n.splice(index + dir, 0, i);
+        return n;
+      };
+      setValue(update);
+      setKeys(update);
+    },
+    [setValue, setKeys]
   );
   const [hide, setHide] = useState(false);
   const template = typedef.metadata?.itemTitle || '{}';
@@ -180,34 +248,70 @@ function InputElements({
         hide={hide}
         setHide={setHide}
       />
-      {values.map((value, i) => (
-        <div
-          className="tab elements-item"
-          style={styleHide(hide)}
-          key={i}
-        >
-          <div className="input-title">
-            <button className="elements-remove" onClick={() => onRemove(i)}>&times;</button>
-            {' '}
-            {template.replace(/\{\}/g, `${i + 1}`)}:
+      <AutoAnimate>
+        {values.map((value, i) => (
+          <div
+            className="tab elements-item"
+            style={styleHide(hide)}
+            key={keys[i]}
+          >
+            <div className="input-title">
+              {template.replace(/\{\}/g, `${i + 1}`)}:
+              <div style={{ float: 'right' }}>
+                <button
+                  title="Move Up"
+                  disabled={i <= 0}
+                  className="elements-move"
+                  onClick={() => onMove(i, -1)}
+                >
+                  ↑
+                </button>
+                <button
+                  title="Move Down"
+                  disabled={i >= values.length - 1}
+                  className="elements-move"
+                  onClick={() => onMove(i, 1)}
+                >
+                  ↓
+                </button>
+                <button
+                  title="Duplicate"
+                  className="elements-duplicate"
+                  onClick={() => onDuplicate(i)}
+                >
+                  ⊕
+                </button>
+                <button
+                  title="Remove"
+                  className="elements-remove"
+                  onClick={() => onRemove(i)}
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+            <JTDEditValue
+              schema={schema}
+              typedef={typedef.elements}
+              value={value}
+              setValue={(v) => {
+                setValue(
+                  (p: any[]) => {
+                    const n = [...p];
+                    n[i] = typeof v === 'function' ? v(n[i]) : v;
+                    return n;
+                  }
+                );
+              }}
+            />
           </div>
-          <JTDEditValue
-            schema={schema}
-            typedef={typedef.elements}
-            value={value}
-            setValue={(v) => {
-              setValue(
-                (p: any[]) => {
-                  const n = [...p];
-                  n[i] = typeof v === 'function' ? v(n[i]) : v;
-                  return n;
-                }
-              );
-            }}
-          />
+        ))}
+      </AutoAnimate>
+      {values.length <= 0 && (
+        <div className="tab" style={styleHide(hide)}>
+          <p><em>Empty</em></p>
         </div>
-      ))}
-      {values.length <= 0 && <div className="tab"><p><em>Empty</em></p></div>}
+      )}
       <div className="tab" style={styleHide(hide)}>
         <button onClick={onAdd}>
           {`Add ${template.replace(/\{\}/g, `${values.length + 1}`)}`}
@@ -232,26 +336,35 @@ function InputProperties({
   skipTitle?: boolean;
   hide?: boolean;
 }) {
-  return typedef.metadata.order.map((k) => (
-    <React.Fragment key={k}>
-      {!skipTitle && <MetaTitle metadata={typedef.metadata} />}
-      <div className="tab" style={styleHide(hide)}>
-        <JTDEditValue
-          schema={schema}
-          typedef={typedef.properties[k]}
-          value={value[k]}
-          setValue={(v) => {
-            setValue(
-              (p: any) => ({
-                ...p,
-                [k]: typeof v === 'function' ? v(p[k]) : v
-              })
-            );
-          }}
+  const [innerHide, setInnerHide] = useState(!!typedef.metadata.startHidden);
+  return (
+    <>
+      {!skipTitle && (
+        <MetaTitle
+          metadata={typedef.metadata}
+          hide={innerHide}
+          setHide={setInnerHide}
         />
-      </div>
-    </React.Fragment>
-  ));
+      )}
+      {typedef.metadata.order.map((k) => (
+        <div key={k} className="tab" style={styleHide(hide || innerHide)}>
+          <JTDEditValue
+            schema={schema}
+            typedef={typedef.properties[k]}
+            value={value[k]}
+            setValue={(v) => {
+              setValue(
+                (p: any) => ({
+                  ...p,
+                  [k]: typeof v === 'function' ? v(p[k]) : v
+                })
+              );
+            }}
+          />
+        </div>
+      ))}
+    </>
+  );
 }
 
 function InputDiscriminator({
@@ -265,7 +378,7 @@ function InputDiscriminator({
   value: any;
   setValue(v: any | ((prevValue: any) => any)): void;
 }) {
-  const [hide, setHide] = useState(false);
+  const [hide, setHide] = useState(true);
   const discVal = value[typedef.discriminator];
   const [objects, setObjects] = useState(() => {
     const objects = new Map<string, any>();
@@ -350,29 +463,38 @@ function HideButton({
 
 function MetaTitle({
   metadata: {
-    title
+    title,
+    description
   },
   postfix,
   hide,
-  setHide
+  setHide,
+  children
 }: {
   metadata: {
     title?: string;
+    description?: string;
   };
   postfix?: string;
   hide?: boolean;
   setHide?(hide: boolean): void;
+  children?: ReactNode;
 }) {
   return (
     <>
-      {(title || setHide) && (
+      {title && (
         <div className={setHide ? 'input-title hide-wrap' : 'input-title'}>
           {setHide && <HideButton hide={hide} setHide={setHide} />}
-          {title && (
-            <div className="title">
-              {postfix ? `${title} ${postfix}` : title}:
-            </div>
-          )}
+          <div className="title">
+            {postfix ? `${title} ${postfix}` : title}
+            {description && (
+              <>
+                {' '}
+                <span className="description" title={description}>ⓘ</span>
+              </>
+            )}:
+            {children && <>{' '}{children}</>}
+          </div>
         </div>
       )}
     </>
@@ -395,18 +517,43 @@ function JTDEditValue({
       case 'float64':
       case 'int32':
         return (
-          <>
-            <MetaTitle metadata={typedef.metadata} />
+          <MetaTitle metadata={typedef.metadata}>
             <InputNumber
               value={value}
               setValue={setValue}
               integer={typedef.type === 'int32'}
             />
-          </>
+          </MetaTitle>
         );
       case 'string':
+        return (
+          <>
+            <MetaTitle metadata={typedef.metadata} />
+            <p>TODO: string</p>
+          </>
+        );
       case 'boolean':
-        console.error('TODO: implement type', typedef.type);
+        return (
+          <>
+            <MetaTitle metadata={typedef.metadata}>
+              <div className="boolean">
+                <button
+                  className={value ? 'selected' : undefined}
+                  onClick={() => { setValue(true); }}
+                >
+                  Yes
+                </button>
+                {' '}
+                <button
+                  className={!value ? 'selected' : undefined}
+                  onClick={() => { setValue(false); }}
+                >
+                  No
+                </button>
+              </div>
+            </MetaTitle>
+          </>
+        );
     }
   } else if ('enum' in typedef) {
     return (
@@ -623,51 +770,55 @@ function wrapFillText(
     ctx.fillText(line, x, y);
     y += lineHeight;
   };
-  if (ctx.measureText(text).width < maxWidth) {
-    renderLine(text);
-  } else {
-    const words = text.split(' ');
+  for (const wline of text.split('\n')) {
+    if (ctx.measureText(wline).width < maxWidth) {
+      renderLine(wline);
+    } else {
+      const words = wline.split(' ');
 
-    // break long words
-    for (let i = 0; i < words.length; i++) {
-      let word = words[i];
-      let insertWord = '';
-      while (word.length > 1 && ctx.measureText(word).width >= maxWidth) {
-        const ch = word.substr(-1);
-        word = word.substr(0, word.length - 1);
-        insertWord = ch + insertWord;
+      // break long words
+      for (let i = 0; i < words.length; i++) {
+        let word = words[i];
+        let insertWord = '';
+        while (word.length > 1 && ctx.measureText(word).width >= maxWidth) {
+          const ch = word.substr(-1);
+          word = word.substr(0, word.length - 1);
+          insertWord = ch + insertWord;
+        }
+        if (insertWord) {
+          words[i] = word;
+          words.splice(i + 1, 0, insertWord);
+        }
       }
-      if (insertWord) {
-        words[i] = word;
-        words.splice(i + 1, 0, insertWord);
-      }
-    }
 
-    let line = '';
-    for (;;) {
-      const word = words.shift();
-      if (typeof word === 'undefined') {
-        break;
-      }
-      if (line) {
-        if (ctx.measureText(`${line} ${word}`).width < maxWidth) {
-          line += ` ${word}`;
+      let line = '';
+      for (;;) {
+        const word = words.shift();
+        if (typeof word === 'undefined') {
+          break;
+        }
+        if (line) {
+          if (ctx.measureText(`${line} ${word}`).width < maxWidth) {
+            line += ` ${word}`;
+          } else {
+            renderLine(line);
+            line = word;
+          }
         } else {
-          renderLine(line);
           line = word;
         }
-      } else {
-        line = word;
       }
+      renderLine(line);
     }
-    renderLine(line);
   }
 }
 
 function Canvas({
+  units,
   surfaces,
   error
 }: {
+  units: string;
   surfaces: Surface[];
   error: string;
 }) {
@@ -745,6 +896,7 @@ function Canvas({
   const ctx = useMemo(() => cnv?.getContext('2d'), [cnv]);
   const dpr = window.devicePixelRatio || 1;
   const camera = useMemo(() => new Camera(), []);
+  const { debug } = useAppContext();
   const redraw = useCallback(
     () => {
       if (!cnv || !ctx) {
@@ -802,7 +954,7 @@ function Canvas({
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.font = '18px/18px sans-serif';
         ctx.fillStyle = '#000';
-        ctx.fillText(`Grid size: ${unitsPerLine}mm`, 10, cnv.height / dpr - 17);
+        ctx.fillText(`Grid size: ${unitsPerLine}${units}`, 10, cnv.height / dpr - 17);
         ctx.restore();
       }
 
@@ -817,7 +969,7 @@ function Canvas({
             boundingBox[1][0] - boundingBox[0][0],
             boundingBox[1][1] - boundingBox[0][1]
           );
-          ctx.lineWidth = 6 / camera.zoomFactor();
+          ctx.lineWidth = 6 * dpr / camera.zoomFactor();
           ctx.strokeStyle = '#0cc';
           ctx.stroke();
         }
@@ -853,7 +1005,7 @@ function Canvas({
         ctx.restore();
       }
     },
-    [cnv, ctx, camera, items, grid, dpr, error]
+    [cnv, ctx, camera, items, grid, dpr, error, units, debug]
   );
   useEffect(
     () => {
@@ -1003,63 +1155,179 @@ function Canvas({
 }
 
 function App() {
-  const [generator, setGenerator] = useState(generators[0]);
-  const generatorName = useMemo(() => generator.name(), [generator]);
-  const schema = useMemo(() => generator.schema(), [generator]);
-  const [allParams, setAllParams] = useState<Map<GeneratorBase, any>>(() =>
-    new Map<GeneratorBase, any>(
-      generators.map(g => [g, g.defaultParams()])
-    )
+  const generators = useMemo(
+    (): GeneratorBase[] => [
+      new PlainBox(),
+    ],
+    []
   );
-  const params = allParams.get(generator);
-  const setParams = useCallback(
-    (v: any) => {
-      setAllParams(
-        (m) => {
-          const map = new Map(m);
-          map.set(generator, typeof v === 'function' ? v(map.get(generator)) : v);
-          return map;
-        }
-      );
-    },
-    [setAllParams, generator]
+  const schema = useMemo(
+    (): JSONTypeDefSchema => ({
+      definitions: {
+        // TODO: this
+      },
+      properties: {
+        settings: {
+          properties: {
+            thickness: {
+              type: 'float64',
+              metadata: {
+                default: 3,
+                title: 'Material Thickness',
+              },
+            },
+            kerf: {
+              type: 'float64',
+              metadata: {
+                default: 0.1,
+                title: 'Kerf',
+                description: 'Thickness of material removed by cutting tool',
+              },
+            },
+            units: {
+              enum: ['mm', 'in'],
+              metadata: {
+                default: 'mm',
+                title: 'Units',
+              },
+            },
+            fileFormat: {
+              enum: ['svg'],
+              metadata: {
+                default: 'svg',
+                title: 'File Format',
+              },
+            },
+            debug: {
+              type: 'boolean',
+              metadata: {
+                default: false,
+                title: 'Debug',
+              },
+            },
+          },
+          metadata: {
+            title: 'Settings',
+            order: ['thickness', 'kerf', 'units', 'fileFormat', 'debug'],
+            startHidden: true,
+          },
+        },
+        generators: {
+          elements: {
+            discriminator: 'kind',
+            mapping:
+              generators.map((g): { [name: string]: JSONTypeDefProperties } => ({
+                [g.name()]: {
+                  properties: {
+                    kind: {
+                      type: 'string',
+                      metadata: {
+                        default: g.name(),
+                        title: g.name(),
+                      },
+                    },
+                    params: g.schema()
+                  },
+                  metadata: {
+                    order: ['params'],
+                  },
+                }
+              }))
+              .reduce((a, b) => ({ ...a, ...b }), {}),
+            metadata: {
+              default: generators[0].name(),
+              order: generators.map(g => g.name()),
+            },
+          },
+          metadata: {
+            default: 1,
+            title: 'Generators',
+            itemTitle: 'Generator {}'
+          },
+        },
+      },
+      metadata: {
+        order: ['settings', 'generators'],
+      }
+    }),
+    [generators]
   );
+  const [params, setParams] = useState(() => newJTD(schema));
   const [surfaces, setSurfaces] = useState<Surface[] | null>(null)
   const [generateError, setGenerateError] = useState('');
   useEffect(
     () => {
-      try {
-        setSurfaces(generator.generate(params));
-        setGenerateError('');
-      } catch (err) {
-        console.error(err);
-        setGenerateError(`${err}`);
+      const surfaces: Surface[] = [];
+      const errors: string[] = [];
+      let i = 1;
+      for (const p of params.generators) {
+        const generator = generators.find(g => g.name() === p.kind);
+        if (generator) {
+          try {
+            const ss = generator.generate(p.params);
+            for (const s of ss) {
+              surfaces.push(s);
+            }
+          } catch (err) {
+            console.error(err);
+            errors.push(`Generator ${i}: ${err}`);
+          }
+        }
+        i++;
       }
+      setSurfaces(surfaces);
+      setGenerateError(errors.join('\n'));
     },
-    [params, generator, setSurfaces, setGenerateError]
+    [params, setSurfaces, setGenerateError]
   );
-
+  const onExport = useCallback(
+    () => {
+      console.log('export');
+    },
+    [generators, params]
+  );
+  const onDownload = useCallback(
+    () => {
+      console.log('download');
+    },
+    [generators, params]
+  );
+  const appContext = useMemo(
+    (): IAppContext => ({
+      debug: params.settings.debug,
+    }),
+    [params]
+  );
   return (
-    <>
+    <AppContext.Provider value={appContext}>
       <nav>
         <h2><a href="https://github.com/velipso/boxburner" target="_blank">boxburner</a></h2>
-        <Select
-          title="Generator"
-          options={generatorOptions}
-          value={generator}
-          setValue={setGenerator}
-        />
-        <JTDEditor
-          key={generatorName}
-          schema={schema}
-          value={params}
-          setValue={setParams}
-        />
+        <div className="nav-main">
+          <JTDEditor
+            schema={schema}
+            value={params}
+            setValue={setParams}
+          />
+        </div>
+        <div className="output-buttons">
+          <button onClick={onDownload}>
+            ↓ Download
+          </button>
+          <button onClick={onExport}>
+            ⧉ Export URL
+          </button>
+        </div>
       </nav>
       <main>
-        {surfaces && <Canvas surfaces={surfaces} error={generateError} />}
+        {surfaces && (
+          <Canvas
+            surfaces={surfaces}
+            error={generateError}
+            units={params.settings.units}
+          />
+        )}
       </main>
-    </>
+    </AppContext.Provider>
   )
 }
 

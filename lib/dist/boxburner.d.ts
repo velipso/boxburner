@@ -23,6 +23,8 @@ type JSONTypeDefTypeBoolean = {
     nullable?: false;
     metadata: {
         default: boolean;
+        title?: string;
+        description?: string;
         [key: string]: any;
     };
 } | {
@@ -30,6 +32,8 @@ type JSONTypeDefTypeBoolean = {
     nullable: true;
     metadata: {
         default: boolean | null;
+        title?: string;
+        description?: string;
         [key: string]: any;
     };
 };
@@ -38,6 +42,8 @@ type JSONTypeDefTypeString = {
     nullable?: false;
     metadata: {
         default: string;
+        title?: string;
+        description?: string;
         [key: string]: any;
     };
 } | {
@@ -45,6 +51,8 @@ type JSONTypeDefTypeString = {
     nullable: true;
     metadata: {
         default: string | null;
+        title?: string;
+        description?: string;
         [key: string]: any;
     };
 };
@@ -54,6 +62,7 @@ type JSONTypeDefTypeFloat64 = {
     metadata: {
         default: number;
         title?: string;
+        description?: string;
         [key: string]: any;
     };
 } | {
@@ -110,8 +119,9 @@ type JSONTypeDefElements = {
     metadata: {
         default: number;
         title?: string;
-        itemTitle?: string;
         description?: string;
+        itemTitle?: string;
+        itemDescription?: string;
         [key: string]: any;
     };
 } | {
@@ -120,8 +130,9 @@ type JSONTypeDefElements = {
     metadata: {
         default: number | null;
         title?: string;
-        itemTitle?: string;
         description?: string;
+        itemTitle?: string;
+        itemDescription?: string;
         [key: string]: any;
     };
 };
@@ -199,7 +210,7 @@ declare class Surface {
 declare abstract class GeneratorBase {
     abstract name(): string;
     abstract defaultParams(): any;
-    abstract schema(): JSONTypeDefSchema;
+    abstract schema(): JSONTypeDef;
     abstract generate(params: any): Surface[];
 }
 
@@ -299,6 +310,7 @@ declare class PlainBox extends GeneratorBase {
                                     metadata: {
                                         default: number;
                                         title: string;
+                                        description: string;
                                     };
                                 };
                                 edgeWidth: {
@@ -306,6 +318,7 @@ declare class PlainBox extends GeneratorBase {
                                     metadata: {
                                         default: number;
                                         title: string;
+                                        description: string;
                                     };
                                 };
                                 extraLength: {
@@ -313,6 +326,7 @@ declare class PlainBox extends GeneratorBase {
                                     metadata: {
                                         default: number;
                                         title: string;
+                                        description: string;
                                     };
                                 };
                                 finger: {
@@ -320,6 +334,7 @@ declare class PlainBox extends GeneratorBase {
                                     metadata: {
                                         default: number;
                                         title: string;
+                                        description: string;
                                     };
                                 };
                                 play: {
@@ -327,6 +342,7 @@ declare class PlainBox extends GeneratorBase {
                                     metadata: {
                                         default: number;
                                         title: string;
+                                        description: string;
                                     };
                                 };
                                 space: {
@@ -334,6 +350,7 @@ declare class PlainBox extends GeneratorBase {
                                     metadata: {
                                         default: number;
                                         title: string;
+                                        description: string;
                                     };
                                 };
                                 width: {
@@ -341,6 +358,7 @@ declare class PlainBox extends GeneratorBase {
                                     metadata: {
                                         default: number;
                                         title: string;
+                                        description: string;
                                     };
                                 };
                             };

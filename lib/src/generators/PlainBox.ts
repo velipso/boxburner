@@ -62,7 +62,7 @@ export class PlainBox extends GeneratorBase {
           type: 'float64' as const,
           metadata: {
             default: 3,
-            title: 'Thickness (mm)',
+            title: 'Thickness',
           },
         },
         edges: {
@@ -82,7 +82,7 @@ export class PlainBox extends GeneratorBase {
                     type: 'float64' as const,
                     metadata: {
                       default: 100,
-                      title: 'Length (mm)',
+                      title: 'Length',
                     },
                   },
                 },
@@ -104,7 +104,7 @@ export class PlainBox extends GeneratorBase {
                     type: 'float64' as const,
                     metadata: {
                       default: 100,
-                      title: 'Length (mm)',
+                      title: 'Length',
                     },
                   },
                   angle: {
@@ -119,48 +119,55 @@ export class PlainBox extends GeneratorBase {
                     metadata: {
                       default: 2,
                       title: 'Surrounding Space',
+                      description: 'Minimal space at the start and end in multiple of normal spaces',
                     },
                   },
                   edgeWidth: {
                     type: 'float64' as const,
                     metadata: {
                       default: 1,
-                      title: 'Edge Width (multiples of thickness)',
+                      title: 'Edge Width',
+                      description: 'Space below holes (multiples of thickness)',
                     },
                   },
                   extraLength: {
                     type: 'float64' as const,
                     metadata: {
                       default: 0,
-                      title: 'Extra Length (multiples of thickness)',
+                      title: 'Extra Length',
+                      description: 'Extra material on finger (multiples of thickness)'
                     },
                   },
                   finger: {
                     type: 'float64' as const,
                     metadata: {
                       default: 2,
-                      title: 'Finger (multiples of thickness)',
+                      title: 'Finger',
+                      description: 'Width of the fingers (multiples of thickness)',
                     },
                   },
                   play: {
                     type: 'float64' as const,
                     metadata: {
                       default: 0,
-                      title: 'Play (multiples of thickness)',
+                      title: 'Play',
+                      description: 'Extra space to allow finger move in and out (multiples of thickness)',
                     },
                   },
                   space: {
                     type: 'float64' as const,
                     metadata: {
                       default: 2,
-                      title: 'Space (multiples of thickness)',
+                      title: 'Space',
+                      description: 'Space between fingers (multiples of thickness)',
                     },
                   },
                   width: {
                     type: 'float64' as const,
                     metadata: {
                       default: 1,
-                      title: 'Width (multiples of thickness)',
+                      title: 'Width',
+                      description: 'Width of finger holes (multiples of thickness)',
                     },
                   },
                 },
