@@ -9,9 +9,9 @@ import { EdgeBase } from './EdgeBase';
 import { SurfaceBuilder } from '../SurfaceBuilder';
 import { IGeneratorSettings } from '../types';
 
-export class BoxJointEdge extends EdgeBase {
+export class BoxJoint extends EdgeBase {
   name() {
-    return 'BoxJointEdge';
+    return 'BoxJoint';
   }
 
   schema() {
@@ -105,11 +105,11 @@ export class BoxJointEdge extends EdgeBase {
     callerInvert: boolean,
     { thickness }: IGeneratorSettings,
     {
+      invert: userInvert,
       width1,
       length1,
       width2,
       length2,
-      invert: userInvert,
       play,
       cornerDistance,
       centerDistance

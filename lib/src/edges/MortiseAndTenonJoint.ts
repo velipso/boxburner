@@ -10,9 +10,9 @@ import { SurfaceBuilder } from '../SurfaceBuilder';
 import { IGeneratorSettings, Vec2 } from '../types';
 import { copyVec2, forwardVec2 } from '../util';
 
-export class MortiseAndTenonEdge extends EdgeBase {
+export class MortiseAndTenonJoint extends EdgeBase {
   name() {
-    return 'MortiseAndTenonEdge';
+    return 'MortiseAndTenonJoint';
   }
 
   schema() {
@@ -114,11 +114,11 @@ export class MortiseAndTenonEdge extends EdgeBase {
     callerInvert: boolean,
     { thickness }: IGeneratorSettings,
     {
+      invert: userInvert,
       width1,
       tenonLength,
       width2,
       holeDistance,
-      invert: userInvert,
       play,
       thicknessPlay,
       cornerDistance,

@@ -8,6 +8,7 @@
 import { DocumentBase } from './DocumentBase';
 import { Surface } from '../Surface';
 import { IExportFile, Vec2, IGeneratorSettings, IDrawCommand } from '../types';
+import { expandPathByKerf } from '../util';
 
 export class DocumentSVG extends DocumentBase {
   settings: IGeneratorSettings;
@@ -31,7 +32,13 @@ export class DocumentSVG extends DocumentBase {
     holeColor: string,
     scoreColor: string
   ) {
-    this.surfaces.push({ offset, surface, cutColor, holeColor, scoreColor });
+    this.surfaces.push({
+      offset,
+      surface,
+      cutColor,
+      holeColor,
+      scoreColor
+    });
   }
 
   toFile() {
@@ -55,6 +62,9 @@ export class DocumentSVG extends DocumentBase {
       data.push(`</g>`);
     };
     const outputPath = (offset: Vec2, commands: IDrawCommand[], closed: boolean, color: string) => {
+      if (closed && kerf > 0) {
+        ({ offset, commands } = expandPathByKerf(offset, commands, kerf));
+      }
       const d: string[] = [`M${num(offset[0])} ${num(offset[1])}`];
       for (const cmd of commands) {
         switch (cmd.kind) {
@@ -73,7 +83,9 @@ export class DocumentSVG extends DocumentBase {
       if (closed) {
         d.push('Z');
       }
-      data.push(`<path stroke="${color}" stroke-width="${kerf}" d="${d.join('')}" />`);
+      data.push(
+        `<path stroke="${color}" stroke-width="${kerf <= 0 ? 0.1 : kerf}" d="${d.join('')}" />`
+      );
     };
 
     for (const { offset, surface, cutColor, holeColor, scoreColor } of this.surfaces) {

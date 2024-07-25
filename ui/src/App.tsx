@@ -21,12 +21,14 @@ import {
   Vec2,
   SettingsTypeDef,
   IDrawCommand,
-  exportDocument
+  exportDocument,
+  expandPathByKerf
 } from '@velipso/boxburner';
 import AutoAnimate from './AutoAnimate';
 
 interface IAppContext {
   units: string;
+  kerf: number;
   debug: boolean;
 }
 
@@ -863,8 +865,7 @@ function wrapFillText(
 
 function drawPathFromCommands(
   ctx: CanvasRenderingContext2D,
-  offset: Vec2,
-  commands: IDrawCommand[]
+  { offset, commands }: { offset: Vec2; commands: IDrawCommand[] }
 ) {
   ctx.beginPath();
   ctx.moveTo(offset[0], offset[1]);
@@ -937,7 +938,7 @@ function Canvas({
   const ctx = useMemo(() => cnv?.getContext('2d'), [cnv]);
   const dpr = window.devicePixelRatio || 1;
   const camera = useMemo(() => new Camera(), []);
-  const { debug } = useAppContext();
+  const { debug, kerf } = useAppContext();
   const redraw = useCallback(
     () => {
       if (!cnv || !ctx) {
@@ -999,10 +1000,28 @@ function Canvas({
         ctx.restore();
       }
 
-      for (const it of items) {
-        const { surface, boundingBox, offset } = it;
-
-        if (debug) { // draw bounding box
+      if (debug) {
+        // draw kerf
+        if (kerf > 0) {
+          for (const { surface, offset } of items) {
+            drawPathFromCommands(ctx, expandPathByKerf(offset, surface.border, kerf));
+            ctx.lineWidth = 4 * dpr / camera.zoomFactor();
+            ctx.strokeStyle = '#77440077';
+            ctx.stroke();
+            for (const hole of surface.holes) {
+              drawPathFromCommands(ctx, expandPathByKerf(
+                [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
+                hole.commands,
+                kerf
+              ));
+              ctx.lineWidth = 4 * dpr / camera.zoomFactor();
+              ctx.strokeStyle = '#44007777';
+              ctx.stroke();
+            }
+          }
+        }
+        // draw bounding box
+        for (const { offset, boundingBox } of items) {
           ctx.beginPath();
           ctx.rect(
             offset[0] + boundingBox[0][0],
@@ -1014,18 +1033,20 @@ function Canvas({
           ctx.strokeStyle = '#0cc';
           ctx.stroke();
         }
+      }
 
-        drawPathFromCommands(ctx, offset, surface.border);
+      for (const it of items) {
+        const { surface, offset } = it;
+        drawPathFromCommands(ctx, { offset, commands: surface.border });
         ctx.lineWidth = 3 * dpr / camera.zoomFactor();
         ctx.strokeStyle = colorPalette[it.cutColor];
         ctx.stroke();
 
         for (const hole of surface.holes) {
-          drawPathFromCommands(
-            ctx,
-            [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
-            hole.commands
-          );
+          drawPathFromCommands(ctx, {
+            offset: [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
+            commands: hole.commands,
+          });
           ctx.lineWidth = 3 * dpr / camera.zoomFactor();
           ctx.strokeStyle = colorPalette[it.holeColor];
           ctx.stroke();
@@ -1056,6 +1077,20 @@ function Canvas({
             }
           };
           pointCommands(offset, surface.border, '#07f');
+          if (kerf > 0) {
+            for (const { surface, offset } of items) {
+              const b = expandPathByKerf(offset, surface.border, kerf);
+              pointCommands(b.offset, b.commands, '#07f');
+              for (const hole of surface.holes) {
+                const h = expandPathByKerf(
+                  [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
+                  hole.commands,
+                  kerf
+                );
+                pointCommands(h.offset, h.commands, '#0f7');
+              }
+            }
+          }
           for (const hole of surface.holes) {
             pointCommands(
               [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
@@ -1075,7 +1110,7 @@ function Canvas({
         ctx.restore();
       }
     },
-    [cnv, ctx, camera, items, grid, dpr, error, units, debug]
+    [cnv, ctx, camera, items, grid, dpr, error, units, debug, kerf]
   );
   useEffect(
     () => {
@@ -1500,6 +1535,7 @@ function App() {
   const appContext = useMemo(
     (): IAppContext => ({
       units: params.settings.units,
+      kerf: params.settings.kerf,
       debug: params.settings.debug,
     }),
     [params]

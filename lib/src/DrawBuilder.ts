@@ -6,9 +6,7 @@
 //
 
 import { IDrawCommand, Vec2 } from './types';
-import { forwardVec2 } from './util';
-
-const eps = 0.0000001;
+import { forwardVec2, eps } from './util';
 
 export class DrawBuilder {
   commands: IDrawCommand[] = [];

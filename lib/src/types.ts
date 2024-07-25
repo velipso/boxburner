@@ -298,3 +298,17 @@ export interface IExportFile {
   extension: string;
   data: Uint8Array;
 }
+
+export enum AlongIntersection {
+  BeforeStart,
+  EqualStart,
+  BetweenStartAndEnd,
+  EqualEnd,
+  AfterEnd,
+}
+
+export interface IntersectionResult {
+  p: Vec2; // intersection point
+  alongA: AlongIntersection; // where this point is along the A line
+  alongB: AlongIntersection; // where this point is along the B line
+}

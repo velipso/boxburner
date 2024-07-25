@@ -11,9 +11,9 @@ import { SurfaceBuilder } from '../SurfaceBuilder';
 import { IGeneratorSettings } from '../types';
 import { allEdges, allEdgesTypeDef } from '../edges';
 
-export class PlainRectangle extends GeneratorBase {
+export class Rectangle extends GeneratorBase {
   name() {
-    return 'PlainRectangle';
+    return 'Rectangle';
   }
 
   schema() {

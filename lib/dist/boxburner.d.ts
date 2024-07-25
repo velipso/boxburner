@@ -213,6 +213,18 @@ interface IExportFile {
     extension: string;
     data: Uint8Array;
 }
+declare enum AlongIntersection {
+    BeforeStart = 0,
+    EqualStart = 1,
+    BetweenStartAndEnd = 2,
+    EqualEnd = 3,
+    AfterEnd = 4
+}
+interface IntersectionResult {
+    p: Vec2;
+    alongA: AlongIntersection;
+    alongB: AlongIntersection;
+}
 
 declare class Surface {
     thickness: number;
@@ -231,7 +243,7 @@ declare abstract class GeneratorBase {
     abstract generate(settings: IGeneratorSettings, params: any): Surface[];
 }
 
-declare class PlainRectangle extends GeneratorBase {
+declare class Rectangle extends GeneratorBase {
     name(): string;
     schema(): {
         properties: {
@@ -259,6 +271,63 @@ declare class PlainRectangle extends GeneratorBase {
         };
     };
     generate(settings: IGeneratorSettings, { width, height, edge1, edge2, edge3, edge4 }: any): Surface[];
+}
+
+declare class PlainBox extends GeneratorBase {
+    name(): string;
+    schema(): {
+        properties: {
+            width: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            depth: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            height: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            holeDistance: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            play: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            thicknessPlay: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+        };
+        metadata: {
+            order: string[];
+        };
+    };
+    generate(settings: IGeneratorSettings, { width, depth, height, holeDistance, play, thicknessPlay }: any): Surface[];
 }
 
 declare const allGenerators: GeneratorBase[];
@@ -305,19 +374,44 @@ declare abstract class EdgeBase {
     abstract draw(sb: SurfaceBuilder, length: number, invert: boolean, settings: IGeneratorSettings, params: any): void;
 }
 
-declare class PlainEdge extends EdgeBase {
+declare class ButtJoint extends EdgeBase {
     name(): string;
     schema(): {
-        properties: {};
+        properties: {
+            invert: {
+                type: "boolean";
+                metadata: {
+                    default: boolean;
+                    title: string;
+                    description: string;
+                };
+            };
+            length1: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            length2: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+        };
         metadata: {
-            order: never[];
+            order: string[];
         };
     };
-    thickness(_length: number, _invert: boolean, _settings: IGeneratorSettings, _params: any): number;
-    draw(sb: SurfaceBuilder, length: number, _invert: boolean, _settings: IGeneratorSettings, _params: any): void;
+    thickness(_length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { length1, length2, invert: userInvert }: any): number;
+    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, length1, length2, }: any): void;
 }
 
-declare class BoxJointEdge extends EdgeBase {
+declare class BoxJoint extends EdgeBase {
     name(): string;
     schema(): {
         properties: {
@@ -391,10 +485,10 @@ declare class BoxJointEdge extends EdgeBase {
         };
     };
     thickness(_length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { length1, length2, invert: userInvert }: any): number;
-    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { width1, length1, width2, length2, invert: userInvert, play, cornerDistance, centerDistance }: any): void;
+    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, width1, length1, width2, length2, play, cornerDistance, centerDistance }: any): void;
 }
 
-declare class MortiseAndTenonEdge extends EdgeBase {
+declare class MortiseAndTenonJoint extends EdgeBase {
     name(): string;
     schema(): {
         properties: {
@@ -476,7 +570,7 @@ declare class MortiseAndTenonEdge extends EdgeBase {
         };
     };
     thickness(_length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { tenonLength, invert: userInvert }: any): number;
-    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { width1, tenonLength, width2, holeDistance, invert: userInvert, play, thicknessPlay, cornerDistance, centerDistance }: any): void;
+    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, width1, tenonLength, width2, holeDistance, play, thicknessPlay, cornerDistance, centerDistance }: any): void;
 }
 
 declare const allEdges: EdgeBase[];
@@ -508,7 +602,13 @@ declare class DocumentSVG extends DocumentBase {
 
 declare function exportDocument(settings: IGeneratorSettings): DocumentBase;
 
+declare const eps = 1e-7;
 declare function copyVec2(p: Vec2): Vec2;
 declare function forwardVec2(p: Vec2, angle: number, dist: number): Vec2;
+declare function linesIntersect(aStart: Vec2, aEnd: Vec2, bStart: Vec2, bEnd: Vec2): IntersectionResult | null;
+declare function expandPathByKerf(offset: Vec2, commands: IDrawCommand[], kerf: number): {
+    offset: Vec2;
+    commands: IDrawCommand[];
+};
 
-export { BoxJointEdge, DocumentBase, DocumentSVG, DrawBuilder, EdgeBase, GeneratorBase, type IDrawCommand, type IDrawCommandCurve, type IDrawCommandGeneric, type IDrawCommandLine, type IExportFile, type IGeneratorSettings, type IOffsetDrawCommands, type ITextCommand, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, MortiseAndTenonEdge, PlainEdge, PlainRectangle, SettingsTypeDef, Surface, SurfaceBuilder, type Vec2, allEdges, allEdgesTypeDef, allGenerators, copyVec2, exportDocument, forwardVec2 };
+export { AlongIntersection, BoxJoint, ButtJoint, DocumentBase, DocumentSVG, DrawBuilder, EdgeBase, GeneratorBase, type IDrawCommand, type IDrawCommandCurve, type IDrawCommandGeneric, type IDrawCommandLine, type IExportFile, type IGeneratorSettings, type IOffsetDrawCommands, type ITextCommand, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, MortiseAndTenonJoint, PlainBox, Rectangle, SettingsTypeDef, Surface, SurfaceBuilder, type Vec2, allEdges, allEdgesTypeDef, allGenerators, copyVec2, eps, expandPathByKerf, exportDocument, forwardVec2, linesIntersect };

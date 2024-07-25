@@ -6,10 +6,13 @@
 //
 
 import { GeneratorBase } from './GeneratorBase';
-import { PlainRectangle } from './PlainRectangle';
+import { Rectangle } from './Rectangle';
+import { PlainBox } from './PlainBox';
 export * from './GeneratorBase';
-export * from './PlainRectangle';
+export * from './Rectangle';
+export * from './PlainBox';
 
 export const allGenerators: GeneratorBase[] = [
-	new PlainRectangle(),
+	new Rectangle(),
+	new PlainBox(),
 ];

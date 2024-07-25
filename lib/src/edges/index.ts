@@ -6,19 +6,19 @@
 //
 
 import { EdgeBase } from './EdgeBase';
-import { PlainEdge } from './PlainEdge';
-import { BoxJointEdge } from './BoxJointEdge';
-import { MortiseAndTenonEdge } from './MortiseAndTenonEdge';
+import { ButtJoint } from './ButtJoint';
+import { BoxJoint } from './BoxJoint';
+import { MortiseAndTenonJoint } from './MortiseAndTenonJoint';
 import { JSONTypeDefDiscriminator, JSONTypeDefProperties } from '../types';
 export * from './EdgeBase';
-export * from './PlainEdge';
-export * from './BoxJointEdge';
-export * from './MortiseAndTenonEdge';
+export * from './ButtJoint';
+export * from './BoxJoint';
+export * from './MortiseAndTenonJoint';
 
 export const allEdges: EdgeBase[] = [
-  new PlainEdge(),
-  new BoxJointEdge(),
-  new MortiseAndTenonEdge(),
+  new ButtJoint(),
+  new BoxJoint(),
+  new MortiseAndTenonJoint(),
 ];
 
 export function allEdgesTypeDef(metadata: any = {}): JSONTypeDefDiscriminator {
