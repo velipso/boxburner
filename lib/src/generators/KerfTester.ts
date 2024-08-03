@@ -50,14 +50,14 @@ export class KerfTester extends GeneratorBase {
         kerfStart: {
           type: 'float64' as const,
           metadata: {
-            default: 0.06,
+            default: 0.08,
             title: 'Kerf start value (units)',
           },
         },
         kerfIncrement: {
           type: 'float64' as const,
           metadata: {
-            default: 0.01,
+            default: 0.02,
             title: 'Kerf increment value (per test)',
           },
         },
