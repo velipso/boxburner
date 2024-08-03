@@ -6,9 +6,8 @@
 //
 
 import { GeneratorBase } from './GeneratorBase';
-import { Surface } from '../Surface';
 import { SurfaceBuilder } from '../SurfaceBuilder';
-import { IGeneratorSettings } from '../types';
+import { type IGeneratorSettings } from '../types';
 import { allEdges, allEdgesTypeDef } from '../edges';
 
 export class Rectangle extends GeneratorBase {
@@ -40,26 +39,29 @@ export class Rectangle extends GeneratorBase {
       },
       metadata: {
         order: ['width', 'height', 'edge1', 'edge2', 'edge3', 'edge4'],
-      }
+      },
     };
   }
 
-  generate(settings: IGeneratorSettings, { width, height, edge1, edge2, edge3, edge4 }: any) {
+  generate(
+    settings: IGeneratorSettings,
+    { width, height, edge1, edge2, edge3, edge4 }: any,
+  ) {
     const { thickness } = settings;
     const sb = new SurfaceBuilder();
-    const e1 = allEdges.find(e => e.name() === edge1.kind);
+    const e1 = allEdges.find((e) => e.name() === edge1.kind);
     if (!e1) {
       throw new Error('Bad top edge');
     }
-    const e2 = allEdges.find(e => e.name() === edge2.kind);
+    const e2 = allEdges.find((e) => e.name() === edge2.kind);
     if (!e2) {
       throw new Error('Bad right edge');
     }
-    const e3 = allEdges.find(e => e.name() === edge3.kind);
+    const e3 = allEdges.find((e) => e.name() === edge3.kind);
     if (!e3) {
       throw new Error('Bad bottom edge');
     }
-    const e4 = allEdges.find(e => e.name() === edge4.kind);
+    const e4 = allEdges.find((e) => e.name() === edge4.kind);
     if (!e4) {
       throw new Error('Bad left edge');
     }

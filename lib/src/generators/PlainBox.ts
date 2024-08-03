@@ -6,7 +6,7 @@
 //
 
 import { GeneratorBase } from './GeneratorBase';
-import { IGeneratorSettings } from '../types';
+import { type IGeneratorSettings } from '../types';
 import { Rectangle } from './Rectangle';
 
 export class PlainBox extends GeneratorBase {
@@ -64,14 +64,21 @@ export class PlainBox extends GeneratorBase {
         },
       },
       metadata: {
-        order: ['width', 'depth', 'height', 'holeDistance', 'play', 'thicknessPlay'],
-      }
+        order: [
+          'width',
+          'depth',
+          'height',
+          'holeDistance',
+          'play',
+          'thicknessPlay',
+        ],
+      },
     };
   }
 
   generate(
     settings: IGeneratorSettings,
-    { width, depth, height, holeDistance, play, thicknessPlay }: any
+    { width, depth, height, holeDistance, play, thicknessPlay }: any,
   ) {
     const { thickness } = settings;
     const rect = new Rectangle();
@@ -86,7 +93,7 @@ export class PlainBox extends GeneratorBase {
         play,
         thicknessPlay,
         cornerDistance: 2 * thickness,
-        centerDistance: 0
+        centerDistance: 0,
       },
     });
     const bt = () => ({
@@ -107,8 +114,8 @@ export class PlainBox extends GeneratorBase {
         length2: 1,
         play,
         cornerDistance: 2 * thickness,
-        centerDistance: 0
-      }
+        centerDistance: 0,
+      },
     });
     return [
       ...rect.generate(settings, {
@@ -120,7 +127,7 @@ export class PlainBox extends GeneratorBase {
         edge4: mt(false),
       }),
       ...rect.generate(settings, {
-        width,
+        width: depth,
         height,
         edge1: bt(),
         edge2: bx(false),
@@ -128,7 +135,7 @@ export class PlainBox extends GeneratorBase {
         edge4: bx(false),
       }),
       ...rect.generate(settings, {
-        width,
+        width: depth,
         height,
         edge1: bt(),
         edge2: bx(false),

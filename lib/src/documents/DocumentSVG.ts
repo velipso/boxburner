@@ -6,19 +6,23 @@
 //
 
 import { DocumentBase } from './DocumentBase';
-import { Surface } from '../Surface';
-import { IExportFile, Vec2, IGeneratorSettings, IDrawCommand } from '../types';
+import { type Surface } from '../Surface';
+import {
+  type Vec2,
+  type IGeneratorSettings,
+  type IDrawCommand,
+} from '../types';
 import { expandPathByKerf } from '../util';
 
 export class DocumentSVG extends DocumentBase {
   settings: IGeneratorSettings;
-  surfaces: {
+  surfaces: Array<{
     offset: Vec2;
     surface: Surface;
     cutColor: string;
     holeColor: string;
     scoreColor: string;
-  }[] = [];
+  }> = [];
 
   constructor(settings: IGeneratorSettings) {
     super(settings);
@@ -30,20 +34,23 @@ export class DocumentSVG extends DocumentBase {
     surface: Surface,
     cutColor: string,
     holeColor: string,
-    scoreColor: string
+    scoreColor: string,
   ) {
     this.surfaces.push({
       offset,
       surface,
       cutColor,
       holeColor,
-      scoreColor
+      scoreColor,
     });
   }
 
   toFile() {
     const { kerf, units } = this.settings;
-    const border: [Vec2, Vec2] = [[0, 0], [0, 0]];
+    const border: [Vec2, Vec2] = [
+      [0, 0],
+      [0, 0],
+    ];
     for (const { offset, surface } of this.surfaces) {
       const bb = surface.borderBoundingBox();
       border[0][0] = Math.min(border[0][0], offset[0] + bb[0][0] - kerf - 10);
@@ -56,12 +63,19 @@ export class DocumentSVG extends DocumentBase {
     const num = (n: number) => `${Math.round(n * 1000) / 1000}`;
     let gid = 0;
     const outputGroupOpen = () => {
-      data.push(`<g id="p-${gid++}" style="fill:none;stroke-linecap:round;stroke-linejoin:round;">`);
+      data.push(
+        `<g id="p-${gid++}" style="fill:none;stroke-linecap:round;stroke-linejoin:round;">`,
+      );
     };
     const outputGroupClose = () => {
       data.push(`</g>`);
     };
-    const outputPath = (offset: Vec2, commands: IDrawCommand[], closed: boolean, color: string) => {
+    const outputPath = (
+      offset: Vec2,
+      commands: IDrawCommand[],
+      closed: boolean,
+      color: string,
+    ) => {
       if (closed && kerf > 0) {
         ({ offset, commands } = expandPathByKerf(offset, commands, kerf));
       }
@@ -69,13 +83,15 @@ export class DocumentSVG extends DocumentBase {
       for (const cmd of commands) {
         switch (cmd.kind) {
           case 'L':
-            d.push(`L${num(offset[0] + cmd.to[0])} ${num(offset[1] + cmd.to[1])}`);
+            d.push(
+              `L${num(offset[0] + cmd.to[0])} ${num(offset[1] + cmd.to[1])}`,
+            );
             break;
           case 'C':
             d.push(
               `C${num(offset[0] + cmd.c1[0])} ${num(offset[1] + cmd.c1[1])}`,
               ` ${num(offset[0] + cmd.c2[0])} ${num(offset[1] + cmd.c2[1])}`,
-              ` ${num(offset[0] + cmd.to[0])} ${num(offset[1] + cmd.to[1])}`
+              ` ${num(offset[0] + cmd.to[0])} ${num(offset[1] + cmd.to[1])}`,
             );
             break;
         }
@@ -84,11 +100,12 @@ export class DocumentSVG extends DocumentBase {
         d.push('Z');
       }
       data.push(
-        `<path stroke="${color}" stroke-width="${kerf <= 0 ? 0.1 : kerf}" d="${d.join('')}" />`
+        `<path stroke="${color}" stroke-width="${kerf <= 0 ? 0.1 : kerf}" d="${d.join('')}" />`,
       );
     };
 
-    for (const { offset, surface, cutColor, holeColor, scoreColor } of this.surfaces) {
+    for (const { offset, surface, cutColor, holeColor, scoreColor } of this
+      .surfaces) {
       if (surface.scores.length > 0 || surface.holes.length > 0) {
         outputGroupOpen();
       }
@@ -99,7 +116,7 @@ export class DocumentSVG extends DocumentBase {
             [offset[0] + score.offset[0], offset[1] + score.offset[1]],
             score.commands,
             false,
-            scoreColor
+            scoreColor,
           );
         }
         outputGroupClose();
@@ -108,10 +125,10 @@ export class DocumentSVG extends DocumentBase {
       outputPath(offset, surface.border, true, cutColor);
       for (const cut of surface.cuts) {
         outputPath(
-            [offset[0] + cut.offset[0], offset[1] + cut.offset[1]],
-            cut.commands,
-            false,
-            cutColor
+          [offset[0] + cut.offset[0], offset[1] + cut.offset[1]],
+          cut.commands,
+          false,
+          cutColor,
         );
       }
       outputGroupClose();
@@ -122,7 +139,7 @@ export class DocumentSVG extends DocumentBase {
             [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
             hole.commands,
             true,
-            holeColor
+            holeColor,
           );
         }
         outputGroupClose();
@@ -138,7 +155,7 @@ export class DocumentSVG extends DocumentBase {
       mimeType: 'image/svg+xml',
       extension: '.svg',
       data: new TextEncoder().encode(
-`<?xml version='1.0' encoding='utf-8'?>
+        `<?xml version='1.0' encoding='utf-8'?>
 <svg
   width="${num(width)}${units}"
   height="${num(height)}${units}"
@@ -151,7 +168,8 @@ Project Home: https://github.com/velipso/boxburner
 SPDX-License-Identifier: 0BSD
 -->
 ${data.join('')}
-</svg>`)
+</svg>`,
+      ),
     };
   }
 }

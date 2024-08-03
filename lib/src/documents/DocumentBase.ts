@@ -5,17 +5,17 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { Surface } from '../Surface';
-import { IExportFile, Vec2, IGeneratorSettings } from '../types';
+import { type Surface } from '../Surface';
+import { type IExportFile, type Vec2, type IGeneratorSettings } from '../types';
 
 export abstract class DocumentBase {
-  constructor(settings: IGeneratorSettings){}
+  constructor(settings: IGeneratorSettings) {}
   abstract addSurface(
     offset: Vec2,
     surface: Surface,
     cutColor: string,
     holeColor: string,
-    scoreColor: string
+    scoreColor: string,
   ): void;
   abstract toFile(): IExportFile;
 }

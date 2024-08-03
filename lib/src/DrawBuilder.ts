@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { IDrawCommand, Vec2 } from './types';
+import { type IDrawCommand, type Vec2 } from './types';
 import { forwardVec2, eps } from './util';
 
 export class DrawBuilder {
@@ -27,10 +27,7 @@ export class DrawBuilder {
       const p2 = last.to;
       const p3 = to;
 
-      if (
-        Math.abs(p1[0] - p3[0]) < eps &&
-        Math.abs(p1[1] - p3[1]) < eps
-      ) {
+      if (Math.abs(p1[0] - p3[0]) < eps && Math.abs(p1[1] - p3[1]) < eps) {
         // this line is undo'ing previous line, so remove it
         this.commands.pop();
         return this;
@@ -59,9 +56,9 @@ export class DrawBuilder {
     // convert quadratic curve to cubic
     const p0 = this.cursor();
     return this.curveTo(
-      [p0[0] + 2 * (c1[0] - p0[0]) / 3, p0[1] + 2 * (c1[1] - p0[1]) / 3],
-      [to[0] + 2 * (c1[0] - to[0]) / 3, to[1] + 2 * (c1[1] - to[1]) / 3],
-      to
+      [p0[0] + (2 * (c1[0] - p0[0])) / 3, p0[1] + (2 * (c1[1] - p0[1])) / 3],
+      [to[0] + (2 * (c1[0] - to[0])) / 3, to[1] + (2 * (c1[1] - to[1])) / 3],
+      to,
     );
   }
 
@@ -95,10 +92,7 @@ export class DrawBuilder {
       const dy1 = p1[1] - p2[1];
       const dx2 = p2[0] - p3[0];
       const dy2 = p2[1] - p3[1];
-      if (
-        Math.abs(p1[0] - p3[0]) < eps &&
-        Math.abs(p1[1] - p3[1]) < eps
-      ) {
+      if (Math.abs(p1[0] - p3[0]) < eps && Math.abs(p1[1] - p3[1]) < eps) {
         this.commands.shift();
       } else if (Math.abs(dx1 * dy2 - dx2 * dy1) >= eps) {
         // points aren't collinear, so bail

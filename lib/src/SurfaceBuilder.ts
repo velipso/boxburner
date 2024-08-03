@@ -7,13 +7,13 @@
 
 import { Surface } from './Surface';
 import { DrawBuilder } from './DrawBuilder';
-import { ITextCommand, Vec2 } from './types';
+import { type ITextCommand, type Vec2 } from './types';
 
 export class SurfaceBuilder {
   border = new DrawBuilder();
-  holes: { offset: Vec2; db: DrawBuilder }[] = [];
-  cuts: { offset: Vec2; db: DrawBuilder }[] = [];
-  scores: { offset: Vec2; db: DrawBuilder }[] = [];
+  holes: Array<{ offset: Vec2; db: DrawBuilder }> = [];
+  cuts: Array<{ offset: Vec2; db: DrawBuilder }> = [];
+  scores: Array<{ offset: Vec2; db: DrawBuilder }> = [];
   text: ITextCommand[] = [];
 
   hole(offset: Vec2, angle = 0) {
@@ -41,10 +41,19 @@ export class SurfaceBuilder {
     return new Surface(
       thickness,
       this.border.close().build(),
-      this.holes.map(({ offset, db }) => ({ offset, commands: db.close().build() })),
-      this.cuts.map(({ offset, db }) => ({ offset, commands: db.close().build() })),
-      this.scores.map(({ offset, db }) => ({ offset, commands: db.close().build() })),
-      this.text
+      this.holes.map(({ offset, db }) => ({
+        offset,
+        commands: db.close().build(),
+      })),
+      this.cuts.map(({ offset, db }) => ({
+        offset,
+        commands: db.close().build(),
+      })),
+      this.scores.map(({ offset, db }) => ({
+        offset,
+        commands: db.close().build(),
+      })),
+      this.text,
     );
   }
 }

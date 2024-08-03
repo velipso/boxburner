@@ -5,7 +5,12 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { Vec2, IDrawCommand, AlongIntersection, IntersectionResult } from './types';
+import {
+  type Vec2,
+  type IDrawCommand,
+  AlongIntersection,
+  type IntersectionResult,
+} from './types';
 
 export const eps = 0.0000001;
 
@@ -25,8 +30,8 @@ export function forwardVec2(p: Vec2, angle: number, dist: number) {
     } else if (angle === 270) {
       p[1] -= dist;
     } else {
-      p[0] += dist * Math.cos(angle * Math.PI / 180);
-      p[1] += dist * Math.sin(angle * Math.PI / 180);
+      p[0] += dist * Math.cos((angle * Math.PI) / 180);
+      p[1] += dist * Math.sin((angle * Math.PI) / 180);
     }
   }
   return p;
@@ -36,7 +41,7 @@ export function linesIntersect(
   aStart: Vec2,
   aEnd: Vec2,
   bStart: Vec2,
-  bEnd: Vec2
+  bEnd: Vec2,
 ): IntersectionResult | null {
   // returns null if the lines are coincident (e.g., parallel or on top of
   // each other)
@@ -90,7 +95,7 @@ export function linesIntersect(
 export function expandPathByKerf(
   offset: Vec2,
   commands: IDrawCommand[],
-  kerf: number
+  kerf: number,
 ): { offset: Vec2; commands: IDrawCommand[] } {
   if (kerf <= 0) {
     return { offset, commands };
@@ -98,7 +103,9 @@ export function expandPathByKerf(
   const halfKerf = kerf / 2;
   const newOffset = copyVec2(offset);
   const newCommands: IDrawCommand[] = [];
-  const offsetAt = (i: number): {
+  const offsetAt = (
+    i: number,
+  ): {
     angle: number;
     offset: Vec2;
   } => {
@@ -114,29 +121,38 @@ export function expandPathByKerf(
   for (let i = 0; i < commands.length; i++) {
     const cmd = commands[i];
     const last = commands[(i + commands.length - 1) % commands.length];
-    const { angle: a1, offset: [sx, sy] } = offsetAt(i);
+    const {
+      angle: a1,
+      offset: [sx, sy],
+    } = offsetAt(i);
     switch (cmd.kind) {
       case 'L': {
         const {
           angle: a2,
-          offset: [lx, ly]
+          offset: [lx, ly],
         } = offsetAt((i + commands.length - 1) % commands.length);
         const dang = Math.min(
           Math.abs(a1 - a2),
-          Math.abs((a1 + Math.PI * 2) - a2),
-          Math.abs(a1 - (a2 + Math.PI * 2))
+          Math.abs(a1 + Math.PI * 2 - a2),
+          Math.abs(a1 - (a2 + Math.PI * 2)),
         );
-        const cdist = halfKerf * 4 * Math.tan(dang / 4) / 3;
+        const cdist = (halfKerf * 4 * Math.tan(dang / 4)) / 3;
         roundedCommands.push(newCommands.length);
         newCommands.push({
           kind: 'C',
-          c1: [last.to[0] + lx - cdist * Math.cos(a2), last.to[1] + ly - cdist * Math.sin(a2)],
-          c2: [last.to[0] + sx + cdist * Math.cos(a1), last.to[1] + sy + cdist * Math.sin(a1)],
+          c1: [
+            last.to[0] + lx - cdist * Math.cos(a2),
+            last.to[1] + ly - cdist * Math.sin(a2),
+          ],
+          c2: [
+            last.to[0] + sx + cdist * Math.cos(a1),
+            last.to[1] + sy + cdist * Math.sin(a1),
+          ],
           to: [last.to[0] + sx, last.to[1] + sy],
         });
         newCommands.push({
           kind: 'L',
-          to: [cmd.to[0] + sx, cmd.to[1] + sy]
+          to: [cmd.to[0] + sx, cmd.to[1] + sy],
         });
         break;
       }
@@ -152,7 +168,8 @@ export function expandPathByKerf(
   }
   // create loops from inner rounded corners
   for (const i of roundedCommands) {
-    const prev2 = newCommands[(i + newCommands.length - 2) % newCommands.length];
+    const prev2 =
+      newCommands[(i + newCommands.length - 2) % newCommands.length];
     const prev = newCommands[(i + newCommands.length - 1) % newCommands.length];
     const here = newCommands[i];
     const next = newCommands[(i + 1) % newCommands.length];
@@ -193,6 +210,6 @@ export function expandPathByKerf(
   }
   return {
     offset: newOffset,
-    commands: newCommands
+    commands: newCommands,
   };
 }

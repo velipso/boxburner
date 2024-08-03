@@ -6,8 +6,8 @@
 //
 
 import { EdgeBase } from './EdgeBase';
-import { SurfaceBuilder } from '../SurfaceBuilder';
-import { IGeneratorSettings } from '../types';
+import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type IGeneratorSettings } from '../types';
 
 export class BoxJoint extends EdgeBase {
   name() {
@@ -70,7 +70,8 @@ export class BoxJoint extends EdgeBase {
           metadata: {
             default: 12,
             title: 'Corner Distance',
-            description: 'Reserved space near corners to exclude fingers (units)',
+            description:
+              'Reserved space near corners to exclude fingers (units)',
           },
         },
         centerDistance: {
@@ -78,14 +79,23 @@ export class BoxJoint extends EdgeBase {
           metadata: {
             default: 0,
             title: 'Center Distance',
-            description: 'Reserved space near center to exclude fingers (units)',
+            description:
+              'Reserved space near center to exclude fingers (units)',
           },
         },
       },
       metadata: {
-        order: ['invert', 'width1', 'length1', 'width2', 'length2', 'play', 'cornerDistance',
-          'centerDistance'],
-      }
+        order: [
+          'invert',
+          'width1',
+          'length1',
+          'width2',
+          'length2',
+          'play',
+          'cornerDistance',
+          'centerDistance',
+        ],
+      },
     };
   }
 
@@ -93,7 +103,7 @@ export class BoxJoint extends EdgeBase {
     _length: number,
     callerInvert: boolean,
     { thickness }: IGeneratorSettings,
-    { length1, length2, invert: userInvert }: any
+    { length1, length2, invert: userInvert }: any,
   ) {
     const invert = callerInvert !== userInvert;
     return (invert ? -length2 : length1) * thickness;
@@ -112,8 +122,8 @@ export class BoxJoint extends EdgeBase {
       length2,
       play,
       cornerDistance,
-      centerDistance
-    }: any
+      centerDistance,
+    }: any,
   ): void {
     const db = sb.border;
     const invert = callerInvert !== userInvert;
@@ -131,8 +141,7 @@ export class BoxJoint extends EdgeBase {
         .forward(t)
         .turn(-a)
         .forward(iplay / 2);
-    const space = () =>
-      db.forward(width2);
+    const space = () => db.forward(width2);
     const fingers = (count: number) => {
       finger();
       for (let i = 0; i < count; i++) {

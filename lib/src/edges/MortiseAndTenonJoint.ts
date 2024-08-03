@@ -6,8 +6,8 @@
 //
 
 import { EdgeBase } from './EdgeBase';
-import { SurfaceBuilder } from '../SurfaceBuilder';
-import { IGeneratorSettings, Vec2 } from '../types';
+import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type IGeneratorSettings } from '../types';
 import { copyVec2, forwardVec2 } from '../util';
 
 export class MortiseAndTenonJoint extends EdgeBase {
@@ -79,7 +79,8 @@ export class MortiseAndTenonJoint extends EdgeBase {
           metadata: {
             default: 12,
             title: 'Corner Distance',
-            description: 'Reserved space near corners to exclude joints (units)',
+            description:
+              'Reserved space near corners to exclude joints (units)',
           },
         },
         centerDistance: {
@@ -92,9 +93,18 @@ export class MortiseAndTenonJoint extends EdgeBase {
         },
       },
       metadata: {
-        order: ['invert', 'width1', 'tenonLength', 'width2', 'holeDistance', 'play',
-          'thicknessPlay', 'cornerDistance', 'centerDistance'],
-      }
+        order: [
+          'invert',
+          'width1',
+          'tenonLength',
+          'width2',
+          'holeDistance',
+          'play',
+          'thicknessPlay',
+          'cornerDistance',
+          'centerDistance',
+        ],
+      },
     };
   }
 
@@ -102,7 +112,7 @@ export class MortiseAndTenonJoint extends EdgeBase {
     _length: number,
     callerInvert: boolean,
     { thickness }: IGeneratorSettings,
-    { tenonLength, invert: userInvert }: any
+    { tenonLength, invert: userInvert }: any,
   ) {
     const invert = callerInvert !== userInvert;
     return invert ? 0 : tenonLength * thickness;
@@ -122,8 +132,8 @@ export class MortiseAndTenonJoint extends EdgeBase {
       play,
       thicknessPlay,
       cornerDistance,
-      centerDistance
-    }: any
+      centerDistance,
+    }: any,
   ): void {
     const invert = callerInvert !== userInvert;
     const iplay = invert ? -play : play;
@@ -145,7 +155,7 @@ export class MortiseAndTenonJoint extends EdgeBase {
       sb.border.forward(length);
       forward = (length: number) => {
         forwardVec2(start, ang, length);
-      }
+      };
       finger = () => {
         forward(iplay / 2);
         sb.hole(copyVec2(start), ang)
@@ -160,12 +170,13 @@ export class MortiseAndTenonJoint extends EdgeBase {
         forward(-iplay / 2);
         forward(width1);
       };
-      space = () => forward(width2);
+      space = () => {
+        forward(width2);
+      };
     } else {
       const t = tenonLength * thickness;
       const a = 90;
-      forward = (length: number) =>
-        sb.border.forward(length);
+      forward = (length: number) => sb.border.forward(length);
       finger = () =>
         sb.border
           .forward(iplay / 2)
@@ -177,8 +188,7 @@ export class MortiseAndTenonJoint extends EdgeBase {
           .forward(t)
           .turn(-a)
           .forward(iplay / 2);
-      space = () =>
-        sb.border.forward(width2);
+      space = () => sb.border.forward(width2);
     }
 
     const left = length - cornerDistance * 2;

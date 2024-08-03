@@ -5,8 +5,8 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { SurfaceBuilder } from '../SurfaceBuilder';
-import { JSONTypeDef, IGeneratorSettings } from '../types';
+import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type JSONTypeDef, type IGeneratorSettings } from '../types';
 
 export abstract class EdgeBase {
   abstract name(): string;
@@ -15,13 +15,13 @@ export abstract class EdgeBase {
     length: number,
     invert: boolean,
     settings: IGeneratorSettings,
-    params: any
+    params: any,
   ): number;
   abstract draw(
     sb: SurfaceBuilder,
     length: number,
     invert: boolean,
     settings: IGeneratorSettings,
-    params: any
+    params: any,
   ): void;
 }

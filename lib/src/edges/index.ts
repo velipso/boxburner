@@ -5,11 +5,14 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { EdgeBase } from './EdgeBase';
+import { type EdgeBase } from './EdgeBase';
 import { ButtJoint } from './ButtJoint';
 import { BoxJoint } from './BoxJoint';
 import { MortiseAndTenonJoint } from './MortiseAndTenonJoint';
-import { JSONTypeDefDiscriminator, JSONTypeDefProperties } from '../types';
+import {
+  type JSONTypeDefDiscriminator,
+  type JSONTypeDefProperties,
+} from '../types';
 export * from './EdgeBase';
 export * from './ButtJoint';
 export * from './BoxJoint';
@@ -24,29 +27,31 @@ export const allEdges: EdgeBase[] = [
 export function allEdgesTypeDef(metadata: any = {}): JSONTypeDefDiscriminator {
   return {
     discriminator: 'kind',
-    mapping:
-      allEdges.map((e): { [name: string]: JSONTypeDefProperties } => ({
-        [e.name()]: {
-          properties: {
-            kind: {
-              type: 'string' as const,
-              metadata: {
-                default: e.name(),
-                title: e.name(),
+    mapping: allEdges
+      .map(
+        (e): Record<string, JSONTypeDefProperties> => ({
+          [e.name()]: {
+            properties: {
+              kind: {
+                type: 'string' as const,
+                metadata: {
+                  default: e.name(),
+                  title: e.name(),
+                },
               },
+              params: e.schema(),
             },
-            params: e.schema()
+            metadata: {
+              order: ['params'],
+              untabParams: true,
+            },
           },
-          metadata: {
-            order: ['params'],
-            untabParams: true,
-          },
-        }
-      }))
+        }),
+      )
       .reduce((a, b) => ({ ...a, ...b }), {}),
     metadata: {
       default: allEdges[0].name(),
-      order: allEdges.map(e => e.name()),
+      order: allEdges.map((e) => e.name()),
       ...metadata,
     },
   };

@@ -5,16 +5,19 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { DocumentBase } from './DocumentBase';
+import { type DocumentBase } from './DocumentBase';
 import { DocumentSVG } from './DocumentSVG';
-import { IGeneratorSettings } from '../types';
+import { type IGeneratorSettings } from '../types';
 export * from './DocumentBase';
 export * from './DocumentSVG';
 
 export function exportDocument(settings: IGeneratorSettings): DocumentBase {
-  switch (settings.fileFormat) {
+  const { fileFormat } = settings;
+  switch (fileFormat) {
     case 'svg':
       return new DocumentSVG(settings);
+    default:
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      throw new Error(`Unknown export file format: ${fileFormat}`);
   }
-  throw new Error(`Unknown export file format: ${settings.fileFormat}`);
 }

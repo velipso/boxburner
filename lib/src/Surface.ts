@@ -5,11 +5,18 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { IDrawCommand, IOffsetDrawCommands, ITextCommand, Vec2 } from './types';
+import {
+  type IDrawCommand,
+  type IOffsetDrawCommands,
+  type ITextCommand,
+  type Vec2,
+} from './types';
 
 function validateClosedPath(hint: string, commands: IDrawCommand[]) {
   if (commands.length <= 0) {
-    throw new Error(`${hint}: Cannot have empty list of commands for closed path`);
+    throw new Error(
+      `${hint}: Cannot have empty list of commands for closed path`,
+    );
   }
   const lastPt = commands[commands.length - 1].to;
   if (lastPt[0] !== 0 || lastPt[1] !== 0) {
@@ -31,7 +38,7 @@ function curveBoundingBox(
   from: Vec2,
   c1: Vec2,
   c2: Vec2,
-  to: Vec2
+  to: Vec2,
 ): [Vec2, Vec2] {
   const evalAt = (i: number, t: number) =>
     from[i] * (1 - t) * (1 - t) * (1 - t) +
@@ -78,13 +85,13 @@ function curveBoundingBox(
   const by = bounds(1);
   return [
     [bx[0], by[0]],
-    [bx[1], by[1]]
+    [bx[1], by[1]],
   ];
 }
 
 function drawCommandsBoundingBox(commands: IDrawCommand[]): [Vec2, Vec2] {
-  let min: Vec2 = [0, 0];
-  let max: Vec2 = [0, 0];
+  const min: Vec2 = [0, 0];
+  const max: Vec2 = [0, 0];
   let from: Vec2 = [0, 0];
   for (const cmd of commands) {
     switch (cmd.kind) {
@@ -95,12 +102,7 @@ function drawCommandsBoundingBox(commands: IDrawCommand[]): [Vec2, Vec2] {
         max[1] = Math.max(max[1], cmd.to[1]);
         break;
       case 'C': {
-        const box = curveBoundingBox(
-          from,
-          cmd.c1,
-          cmd.c2,
-          cmd.to
-        );
+        const box = curveBoundingBox(from, cmd.c1, cmd.c2, cmd.to);
         min[0] = Math.min(min[0], box[0][0]);
         min[1] = Math.min(min[1], box[0][1]);
         max[0] = Math.max(max[0], box[1][0]);
@@ -127,11 +129,13 @@ export class Surface {
     holes: IOffsetDrawCommands[] = [],
     cuts: IOffsetDrawCommands[] = [],
     scores: IOffsetDrawCommands[] = [],
-    text: ITextCommand[] = []
+    text: ITextCommand[] = [],
   ) {
     validateClosedPath('Surface border', border);
     if (!isClockwise(border)) {
-      throw new Error(`Surface border: Points must be in counter-clockwise order for border`);
+      throw new Error(
+        `Surface border: Points must be in counter-clockwise order for border`,
+      );
     }
     for (let i = 0; i < holes.length; i++) {
       const hint = `Surface hole ${i}`;

@@ -6,8 +6,8 @@
 //
 
 import { EdgeBase } from './EdgeBase';
-import { SurfaceBuilder } from '../SurfaceBuilder';
-import { IGeneratorSettings } from '../types';
+import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type IGeneratorSettings } from '../types';
 
 export class ButtJoint extends EdgeBase {
   name() {
@@ -42,7 +42,7 @@ export class ButtJoint extends EdgeBase {
           },
         },
       },
-      metadata: { order: ['invert', 'length1', 'length2'] }
+      metadata: { order: ['invert', 'length1', 'length2'] },
     };
   }
 
@@ -50,7 +50,7 @@ export class ButtJoint extends EdgeBase {
     _length: number,
     callerInvert: boolean,
     { thickness }: IGeneratorSettings,
-    { length1, length2, invert: userInvert }: any
+    { length1, length2, invert: userInvert }: any,
   ) {
     const invert = callerInvert !== userInvert;
     return (invert ? -length2 : length1) * thickness;
@@ -61,15 +61,18 @@ export class ButtJoint extends EdgeBase {
     length: number,
     callerInvert: boolean,
     { thickness }: IGeneratorSettings,
-    {
-      invert: userInvert,
-      length1,
-      length2,
-    }: any
+    { invert: userInvert, length1, length2 }: any,
   ): void {
     const invert = callerInvert !== userInvert;
     const t = (invert ? length2 : length1) * thickness;
     const a = invert ? -90 : 90;
-    sb.border.turn(-a).forward(t).turn(a).forward(length).turn(a).forward(t).turn(-a);
+    sb.border
+      .turn(-a)
+      .forward(t)
+      .turn(a)
+      .forward(length)
+      .turn(a)
+      .forward(t)
+      .turn(-a);
   }
 }

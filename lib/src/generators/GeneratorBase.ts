@@ -5,8 +5,8 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { Surface } from '../Surface';
-import { JSONTypeDef, IGeneratorSettings } from '../types';
+import { type Surface } from '../Surface';
+import { type JSONTypeDef, type IGeneratorSettings } from '../types';
 
 export abstract class GeneratorBase {
   abstract name(): string;

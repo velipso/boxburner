@@ -141,9 +141,7 @@ type JSONTypeDefElements = {
     };
 };
 type JSONTypeDefProperties = {
-    properties: {
-        [property: string]: JSONTypeDef;
-    };
+    properties: Record<string, JSONTypeDef>;
     nullable?: false;
     metadata: {
         order: string[];
@@ -152,9 +150,7 @@ type JSONTypeDefProperties = {
         [key: string]: any;
     };
 } | {
-    properties: {
-        [property: string]: JSONTypeDef;
-    };
+    properties: Record<string, JSONTypeDef>;
     nullable: true;
     metadata: {
         default?: null;
@@ -166,9 +162,7 @@ type JSONTypeDefProperties = {
 };
 type JSONTypeDefDiscriminator = {
     discriminator: string;
-    mapping: {
-        [value: string]: JSONTypeDefProperties;
-    };
+    mapping: Record<string, JSONTypeDefProperties>;
     nullable?: false;
     metadata: {
         default: string;
@@ -179,9 +173,7 @@ type JSONTypeDefDiscriminator = {
     };
 } | {
     discriminator: string;
-    mapping: {
-        [value: string]: JSONTypeDefProperties;
-    };
+    mapping: Record<string, JSONTypeDefProperties>;
     nullable: true;
     metadata: {
         default: string | null;
@@ -196,9 +188,7 @@ interface JSONTypeDefRef extends JSONTypeDefCommon {
 }
 type JSONTypeDef = JSONTypeDefTypeBoolean | JSONTypeDefTypeString | JSONTypeDefTypeFloat64 | JSONTypeDefTypeInt32 | JSONTypeDefEnum | JSONTypeDefElements | JSONTypeDefProperties | JSONTypeDefDiscriminator;
 type JSONTypeDefSchema = JSONTypeDef & {
-    definitions?: {
-        [name: string]: JSONTypeDef;
-    };
+    definitions?: Record<string, JSONTypeDef>;
 };
 interface IGeneratorSettings {
     thickness: number;
@@ -348,18 +338,18 @@ declare class DrawBuilder {
 
 declare class SurfaceBuilder {
     border: DrawBuilder;
-    holes: {
+    holes: Array<{
         offset: Vec2;
         db: DrawBuilder;
-    }[];
-    cuts: {
+    }>;
+    cuts: Array<{
         offset: Vec2;
         db: DrawBuilder;
-    }[];
-    scores: {
+    }>;
+    scores: Array<{
         offset: Vec2;
         db: DrawBuilder;
-    }[];
+    }>;
     text: ITextCommand[];
     hole(offset: Vec2, angle?: number): DrawBuilder;
     cut(offset: Vec2, angle?: number): DrawBuilder;
@@ -408,7 +398,7 @@ declare class ButtJoint extends EdgeBase {
         };
     };
     thickness(_length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { length1, length2, invert: userInvert }: any): number;
-    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, length1, length2, }: any): void;
+    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, length1, length2 }: any): void;
 }
 
 declare class BoxJoint extends EdgeBase {
@@ -485,7 +475,7 @@ declare class BoxJoint extends EdgeBase {
         };
     };
     thickness(_length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { length1, length2, invert: userInvert }: any): number;
-    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, width1, length1, width2, length2, play, cornerDistance, centerDistance }: any): void;
+    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, width1, length1, width2, length2, play, cornerDistance, centerDistance, }: any): void;
 }
 
 declare class MortiseAndTenonJoint extends EdgeBase {
@@ -570,7 +560,7 @@ declare class MortiseAndTenonJoint extends EdgeBase {
         };
     };
     thickness(_length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { tenonLength, invert: userInvert }: any): number;
-    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, width1, tenonLength, width2, holeDistance, play, thicknessPlay, cornerDistance, centerDistance }: any): void;
+    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, { thickness }: IGeneratorSettings, { invert: userInvert, width1, tenonLength, width2, holeDistance, play, thicknessPlay, cornerDistance, centerDistance, }: any): void;
 }
 
 declare const allEdges: EdgeBase[];
@@ -584,13 +574,13 @@ declare abstract class DocumentBase {
 
 declare class DocumentSVG extends DocumentBase {
     settings: IGeneratorSettings;
-    surfaces: {
+    surfaces: Array<{
         offset: Vec2;
         surface: Surface;
         cutColor: string;
         holeColor: string;
         scoreColor: string;
-    }[];
+    }>;
     constructor(settings: IGeneratorSettings);
     addSurface(offset: Vec2, surface: Surface, cutColor: string, holeColor: string, scoreColor: string): void;
     toFile(): {
