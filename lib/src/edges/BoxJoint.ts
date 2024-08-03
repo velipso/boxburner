@@ -118,13 +118,21 @@ export class BoxJoint extends EdgeBase {
     const db = sb.border;
     const invert = callerInvert !== userInvert;
     const t = (invert ? length2 : length1) * thickness;
-    const w1 = invert ? width1 + play : width1 - play;
-    const w2 = invert ? width2 - play : width2 + play;
+    const iplay = invert ? -play : play;
     const a = invert ? -90 : 90;
     const finger = () =>
-      db.turn(-a).forward(t).turn(a).forward(w1).turn(a).forward(t).turn(-a);
+      db
+        .forward(iplay / 2)
+        .turn(-a)
+        .forward(t)
+        .turn(a)
+        .forward(width1 - iplay)
+        .turn(a)
+        .forward(t)
+        .turn(-a)
+        .forward(iplay / 2);
     const space = () =>
-      db.forward(w2);
+      db.forward(width2);
     const fingers = (count: number) => {
       finger();
       for (let i = 0; i < count; i++) {

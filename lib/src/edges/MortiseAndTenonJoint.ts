@@ -126,8 +126,7 @@ export class MortiseAndTenonJoint extends EdgeBase {
     }: any
   ): void {
     const invert = callerInvert !== userInvert;
-    const w1 = invert ? width1 + play : width1 - play;
-    const w2 = invert ? width2 - play : width2 + play;
+    const iplay = invert ? -play : play;
     let forward = (_length: number) => {};
     let finger = () => {};
     let space = () => {};
@@ -148,27 +147,38 @@ export class MortiseAndTenonJoint extends EdgeBase {
         forwardVec2(start, ang, length);
       }
       finger = () => {
+        forward(iplay / 2);
         sb.hole(copyVec2(start), ang)
-          .forward(w1)
+          .forward(width1 - iplay)
           .turn(-90)
           .forward(t)
           .turn(-90)
-          .forward(w1)
+          .forward(width1 - iplay)
           .turn(-90)
           .forward(t)
           .turn(-90);
-        forward(w1);
+        forward(-iplay / 2);
+        forward(width1);
       };
-      space = () => forward(w2);
+      space = () => forward(width2);
     } else {
       const t = tenonLength * thickness;
       const a = 90;
       forward = (length: number) =>
         sb.border.forward(length);
       finger = () =>
-        sb.border.turn(-a).forward(t).turn(a).forward(w1).turn(a).forward(t).turn(-a);
+        sb.border
+          .forward(iplay / 2)
+          .turn(-a)
+          .forward(t)
+          .turn(a)
+          .forward(width1 - iplay)
+          .turn(a)
+          .forward(t)
+          .turn(-a)
+          .forward(iplay / 2);
       space = () =>
-        sb.border.forward(w2);
+        sb.border.forward(width2);
     }
 
     const left = length - cornerDistance * 2;

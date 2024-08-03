@@ -95,6 +95,7 @@ export function expandPathByKerf(
   if (kerf <= 0) {
     return { offset, commands };
   }
+  const halfKerf = kerf / 2;
   const newOffset = copyVec2(offset);
   const newCommands: IDrawCommand[] = [];
   const offsetAt = (i: number): {
@@ -105,8 +106,8 @@ export function expandPathByKerf(
     const last = commands[i === 0 ? commands.length - 1 : i - 1];
     const angle = Math.atan2(last.to[1] - cmd.to[1], last.to[0] - cmd.to[0]);
     const normal = angle + Math.PI / 2;
-    const sx = kerf * Math.cos(normal);
-    const sy = kerf * Math.sin(normal);
+    const sx = halfKerf * Math.cos(normal);
+    const sy = halfKerf * Math.sin(normal);
     return { angle, offset: [sx, sy] };
   };
   const roundedCommands: number[] = [];
@@ -125,7 +126,7 @@ export function expandPathByKerf(
           Math.abs((a1 + Math.PI * 2) - a2),
           Math.abs(a1 - (a2 + Math.PI * 2))
         );
-        const cdist = kerf * 4 * Math.tan(dang / 4) / 3;
+        const cdist = halfKerf * 4 * Math.tan(dang / 4) / 3;
         roundedCommands.push(newCommands.length);
         newCommands.push({
           kind: 'C',
