@@ -116,7 +116,10 @@ function drawCommandsBoundingBox(commands: IDrawCommand[]): [Vec2, Vec2] {
 }
 
 export class Surface {
-  thickness: number;
+  defaultThickness: number;
+  defaultKerf: number;
+  thicknessValue: number | null = null;
+  kerfValue: number | null = null;
   border: IDrawCommand[];
   holes: IOffsetDrawCommands[];
   cuts: IOffsetDrawCommands[];
@@ -124,7 +127,10 @@ export class Surface {
   text: ITextCommand[];
 
   constructor(
-    thickness: number,
+    {
+      defaultThickness,
+      defaultKerf,
+    }: { defaultThickness: number; defaultKerf: number },
     border: IDrawCommand[],
     holes: IOffsetDrawCommands[] = [],
     cuts: IOffsetDrawCommands[] = [],
@@ -144,12 +150,33 @@ export class Surface {
         throw new Error(`${hint}: Points must be in clockwise order for holes`);
       }
     }
-    this.thickness = thickness;
+    this.defaultThickness = defaultThickness;
+    this.defaultKerf = defaultKerf;
     this.border = border;
     this.holes = holes;
     this.cuts = cuts;
     this.scores = scores;
     this.text = text;
+  }
+
+  setThickness(thickness: number | null) {
+    this.thicknessValue = thickness;
+  }
+
+  setKerf(kerf: number | null) {
+    this.kerfValue = kerf;
+  }
+
+  thickness() {
+    return typeof this.thicknessValue === 'number'
+      ? this.thicknessValue
+      : this.defaultThickness;
+  }
+
+  kerf() {
+    return typeof this.kerfValue === 'number'
+      ? this.kerfValue
+      : this.defaultKerf;
   }
 
   borderBoundingBox() {

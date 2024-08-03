@@ -17,6 +17,13 @@ export class PlainBox extends GeneratorBase {
   schema() {
     return {
       properties: {
+        labels: {
+          type: 'boolean' as const,
+          metadata: {
+            default: false,
+            title: 'Labels',
+          },
+        },
         width: {
           type: 'float64' as const,
           metadata: {
@@ -65,6 +72,7 @@ export class PlainBox extends GeneratorBase {
       },
       metadata: {
         order: [
+          'labels',
           'width',
           'depth',
           'height',
@@ -78,9 +86,9 @@ export class PlainBox extends GeneratorBase {
 
   generate(
     settings: IGeneratorSettings,
-    { width, depth, height, holeDistance, play, thicknessPlay }: any,
+    { labels, width, depth, height, holeDistance, play, thicknessPlay }: any,
   ) {
-    const { thickness } = settings;
+    const { defaultThickness: thickness } = settings;
     const rect = new Rectangle();
     const mt = (invert: boolean) => ({
       kind: 'MortiseAndTenonJoint',
@@ -125,6 +133,7 @@ export class PlainBox extends GeneratorBase {
         edge2: mt(false),
         edge3: mt(false),
         edge4: mt(false),
+        ...(labels ? { label: 'Bottom' } : {}),
       }),
       ...rect.generate(settings, {
         width: depth,
@@ -133,6 +142,7 @@ export class PlainBox extends GeneratorBase {
         edge2: bx(false),
         edge3: mt(true),
         edge4: bx(false),
+        ...(labels ? { label: 'Left' } : {}),
       }),
       ...rect.generate(settings, {
         width: depth,
@@ -141,6 +151,7 @@ export class PlainBox extends GeneratorBase {
         edge2: bx(false),
         edge3: mt(true),
         edge4: bx(false),
+        ...(labels ? { label: 'Right' } : {}),
       }),
       ...rect.generate(settings, {
         width,
@@ -149,6 +160,7 @@ export class PlainBox extends GeneratorBase {
         edge2: bx(true),
         edge3: mt(true),
         edge4: bx(true),
+        ...(labels ? { label: 'Front' } : {}),
       }),
       ...rect.generate(settings, {
         width,
@@ -157,6 +169,7 @@ export class PlainBox extends GeneratorBase {
         edge2: bx(true),
         edge3: mt(true),
         edge4: bx(true),
+        ...(labels ? { label: 'Back' } : {}),
       }),
     ];
   }

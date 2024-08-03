@@ -43,11 +43,19 @@ html, body {
   font-weight: 500;
   text-align: center;
   background-color: #15161e;
+  position: relative;
 }
 
 #root > nav > h2 > a {
   color: #e2e5ec;
   text-decoration: none;
+}
+
+#root > nav > h2 > .version {
+  font-size: 12px;
+  position: absolute;
+  right: 10px;
+  opacity: 0.5;
 }
 
 #root > nav > .nav-main {
@@ -280,7 +288,8 @@ nav button {
   transform: translateY(-1px);
 }
 
-input[type=text].number {
+input[type=text].number,
+input[type=text].string {
   display: block;
   float: right;
   width: 90px;
@@ -289,6 +298,15 @@ input[type=text].number {
   height: 24px;
   min-height: unset;
   padding: 0 8px;
+  transform: translateY(-1px);
+}
+
+input[type=checkbox].nullable {
+  display: block;
+  float: right;
+  height: 17px;
+  width: 17px;
+  margin-right: 7px;
   transform: translateY(-1px);
 }
 

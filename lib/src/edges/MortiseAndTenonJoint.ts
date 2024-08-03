@@ -7,7 +7,6 @@
 
 import { EdgeBase } from './EdgeBase';
 import { type SurfaceBuilder } from '../SurfaceBuilder';
-import { type IGeneratorSettings } from '../types';
 import { copyVec2, forwardVec2 } from '../util';
 
 export class MortiseAndTenonJoint extends EdgeBase {
@@ -111,7 +110,7 @@ export class MortiseAndTenonJoint extends EdgeBase {
   thickness(
     _length: number,
     callerInvert: boolean,
-    { thickness }: IGeneratorSettings,
+    thickness: number,
     { tenonLength, invert: userInvert }: any,
   ) {
     const invert = callerInvert !== userInvert;
@@ -122,7 +121,7 @@ export class MortiseAndTenonJoint extends EdgeBase {
     sb: SurfaceBuilder,
     length: number,
     callerInvert: boolean,
-    { thickness }: IGeneratorSettings,
+    thickness: number,
     {
       invert: userInvert,
       width1,

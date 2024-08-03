@@ -28,7 +28,7 @@ import AutoAnimate from './AutoAnimate';
 
 interface IAppContext {
   units: string;
-  kerf: number;
+  defaultKerf: number;
   debug: boolean;
 }
 
@@ -137,6 +137,24 @@ function InputNumber({
       value={text}
       onChange={onChange}
     />
+  );
+}
+
+function InputString({
+  value,
+  setValue,
+}: {
+  value: string;
+  setValue: (v: string | ((prevValue: string) => string)) => void;
+}) {
+  const onChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setValue(event.target.value);
+    },
+    [setValue],
+  );
+  return (
+    <input className="string" type="text" value={value} onChange={onChange} />
   );
 }
 
@@ -370,27 +388,33 @@ function InputProperties({
           setHide={setInnerHide}
         />
       )}
-      {typedef.metadata.order.map((k) => (
-        <div
-          key={k}
-          className={
-            typedef.metadata.untabParams && k === 'params' ? undefined : 'tab'
-          }
-          style={styleHide(hide || innerHide)}
-        >
-          <JTDEditValue
-            schema={schema}
-            typedef={typedef.properties[k]}
-            value={value[k]}
-            setValue={(v) => {
-              setValue((p: any) => ({
-                ...p,
-                [k]: typeof v === 'function' ? v(p[k]) : v,
-              }));
-            }}
-          />
-        </div>
-      ))}
+      {typedef.metadata.order.map((k) => {
+        const td = typedef.properties[k];
+        if (!td) {
+          return <p>ERROR: Missing typedef for {k}</p>;
+        }
+        return (
+          <div
+            key={k}
+            className={
+              typedef.metadata.untabParams && k === 'params' ? undefined : 'tab'
+            }
+            style={styleHide(hide || innerHide)}
+          >
+            <JTDEditValue
+              schema={schema}
+              typedef={td}
+              value={value[k]}
+              setValue={(v) => {
+                setValue((p: any) => ({
+                  ...p,
+                  [k]: typeof v === 'function' ? v(p[k]) : v,
+                }));
+              }}
+            />
+          </div>
+        );
+      })}
     </>
   );
 }
@@ -561,19 +585,76 @@ function JTDEditValue({
       case 'int32':
         return (
           <MetaTitle metadata={typedef.metadata}>
-            <InputNumber
-              value={value}
-              setValue={setValue}
-              integer={typedef.type === 'int32'}
-            />
+            {typedef.nullable ? (
+              <>
+                {value === null ? (
+                  <input
+                    className="number"
+                    type="text"
+                    disabled={true}
+                    value={typedef.metadata.nullHint || 'null'}
+                  />
+                ) : (
+                  <InputNumber
+                    value={value}
+                    setValue={setValue}
+                    integer={typedef.type === 'int32'}
+                  />
+                )}
+                <input
+                  className="nullable"
+                  type="checkbox"
+                  checked={value !== null}
+                  onChange={() => {
+                    if (value === null) {
+                      setValue(typedef.metadata.defaultNotNull ?? 0);
+                    } else {
+                      setValue(null);
+                    }
+                  }}
+                />
+              </>
+            ) : (
+              <InputNumber
+                value={value}
+                setValue={setValue}
+                integer={typedef.type === 'int32'}
+              />
+            )}
           </MetaTitle>
         );
       case 'string':
         return (
-          <>
-            <MetaTitle metadata={typedef.metadata} />
-            <p>TODO: string</p>
-          </>
+          <MetaTitle metadata={typedef.metadata}>
+            {typedef.nullable ? (
+              <>
+                {value === null ? (
+                  <input
+                    className="number"
+                    type="text"
+                    disabled={true}
+                    value={typedef.metadata.nullHint || 'null'}
+                  />
+                ) : (
+                  <InputString value={value} setValue={setValue} />
+                )}
+                <input
+                  className="nullable"
+                  type="checkbox"
+                  checked={value !== null}
+                  onChange={() => {
+                    if (value === null) {
+                      setValue(typedef.metadata.defaultNotNull ?? '');
+                    } else {
+                      setValue(null);
+                    }
+                  }}
+                />
+              </>
+            ) : (
+              <InputString value={value} setValue={setValue} />
+            )}
+          </MetaTitle>
         );
       case 'boolean':
         return (
@@ -939,7 +1020,7 @@ function Canvas({
   const ctx = useMemo(() => cnv?.getContext('2d'), [cnv]);
   const dpr = window.devicePixelRatio || 1;
   const camera = useMemo(() => new Camera(), []);
-  const { debug, kerf } = useAppContext();
+  const { debug } = useAppContext();
   const redraw = useCallback(() => {
     if (!cnv || !ctx) {
       return;
@@ -1009,8 +1090,9 @@ function Canvas({
 
     if (debug) {
       // draw kerf
-      if (kerf > 0) {
-        for (const { surface, offset } of items) {
+      for (const { surface, offset } of items) {
+        const kerf = surface.kerf();
+        if (kerf > 0) {
           drawPathFromCommands(
             ctx,
             expandPathByKerf(offset, surface.border, kerf),
@@ -1064,6 +1146,15 @@ function Canvas({
         ctx.strokeStyle = colorPalette[it.holeColor];
         ctx.stroke();
       }
+      for (const score of surface.scores) {
+        drawPathFromCommands(ctx, {
+          offset: [offset[0] + score.offset[0], offset[1] + score.offset[1]],
+          commands: score.commands,
+        });
+        ctx.lineWidth = (3 * dpr) / camera.zoomFactor();
+        ctx.strokeStyle = colorPalette[it.scoreColor];
+        ctx.stroke();
+      }
     }
 
     if (debug) {
@@ -1094,8 +1185,9 @@ function Canvas({
           }
         };
         pointCommands(offset, surface.border, '#07f');
-        if (kerf > 0) {
-          for (const { surface, offset } of items) {
+        for (const { surface, offset } of items) {
+          const kerf = surface.kerf();
+          if (kerf > 0) {
             const b = expandPathByKerf(offset, surface.border, kerf);
             pointCommands(b.offset, b.commands, '#07f');
             for (const hole of surface.holes) {
@@ -1126,7 +1218,7 @@ function Canvas({
       wrapFillText(ctx, error, 10, 32, cnv.width / dpr - 20, 26);
       ctx.restore();
     }
-  }, [cnv, ctx, camera, items, grid, dpr, error, units, debug, kerf]);
+  }, [cnv, ctx, camera, items, grid, dpr, error, units, debug]);
   useEffect(() => {
     redraw();
   }, [redraw]);
@@ -1384,7 +1476,7 @@ function App() {
               )
               .reduce((a, b) => ({ ...a, ...b }), {}),
             metadata: {
-              default: allGenerators[0].name(),
+              default: 'PlainBox',
               order: allGenerators.map((g) => g.name()),
             },
           },
@@ -1537,7 +1629,7 @@ function App() {
   const appContext = useMemo(
     (): IAppContext => ({
       units: params.settings.units,
-      kerf: params.settings.kerf,
+      defaultKerf: params.settings.defaultKerf,
       debug: params.settings.debug,
     }),
     [params],
@@ -1566,6 +1658,7 @@ function App() {
           <a href="https://github.com/velipso/boxburner" target="_blank">
             boxburner
           </a>
+          <span className="version">v0.1-alpha</span>
         </h2>
         <div className="nav-main">
           <JTDEditor

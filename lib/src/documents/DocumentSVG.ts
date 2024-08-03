@@ -46,13 +46,14 @@ export class DocumentSVG extends DocumentBase {
   }
 
   toFile() {
-    const { kerf, units } = this.settings;
+    const { units } = this.settings;
     const border: [Vec2, Vec2] = [
       [0, 0],
       [0, 0],
     ];
     for (const { offset, surface } of this.surfaces) {
       const bb = surface.borderBoundingBox();
+      const kerf = surface.kerf();
       border[0][0] = Math.min(border[0][0], offset[0] + bb[0][0] - kerf - 10);
       border[0][1] = Math.min(border[0][1], offset[1] + bb[0][1] - kerf - 10);
       border[1][0] = Math.max(border[1][0], offset[0] + bb[1][0] + kerf + 10);
@@ -71,6 +72,7 @@ export class DocumentSVG extends DocumentBase {
       data.push(`</g>`);
     };
     const outputPath = (
+      kerf: number,
       offset: Vec2,
       commands: IDrawCommand[],
       closed: boolean,
@@ -106,6 +108,7 @@ export class DocumentSVG extends DocumentBase {
 
     for (const { offset, surface, cutColor, holeColor, scoreColor } of this
       .surfaces) {
+      const kerf = surface.kerf();
       if (surface.scores.length > 0 || surface.holes.length > 0) {
         outputGroupOpen();
       }
@@ -113,6 +116,7 @@ export class DocumentSVG extends DocumentBase {
         outputGroupOpen();
         for (const score of surface.scores) {
           outputPath(
+            kerf,
             [offset[0] + score.offset[0], offset[1] + score.offset[1]],
             score.commands,
             false,
@@ -122,9 +126,10 @@ export class DocumentSVG extends DocumentBase {
         outputGroupClose();
       }
       outputGroupOpen();
-      outputPath(offset, surface.border, true, cutColor);
+      outputPath(kerf, offset, surface.border, true, cutColor);
       for (const cut of surface.cuts) {
         outputPath(
+          kerf,
           [offset[0] + cut.offset[0], offset[1] + cut.offset[1]],
           cut.commands,
           false,
@@ -136,6 +141,7 @@ export class DocumentSVG extends DocumentBase {
         outputGroupOpen();
         for (const hole of surface.holes) {
           outputPath(
+            kerf,
             [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
             hole.commands,
             true,

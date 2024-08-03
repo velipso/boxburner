@@ -74,6 +74,8 @@ export type JSONTypeDefTypeString =
       nullable: true;
       metadata: {
         default: string | null;
+        defaultNotNull?: string;
+        nullHint?: string;
         title?: string;
         description?: string;
         [key: string]: any;
@@ -96,6 +98,8 @@ export type JSONTypeDefTypeFloat64 =
       nullable: true;
       metadata: {
         default: number | null;
+        defaultNotNull?: number;
+        nullHint?: string;
         title?: string;
         description?: string;
         [key: string]: any;
@@ -118,6 +122,8 @@ export type JSONTypeDefTypeInt32 =
       nullable: true;
       metadata: {
         default: number | null;
+        defaultNotNull?: number;
+        nullHint?: string;
         title?: string;
         description?: string;
         [key: string]: any;
@@ -240,8 +246,8 @@ export type JSONTypeDefSchema = JSONTypeDef & {
 };
 
 export interface IGeneratorSettings {
-  thickness: number;
-  kerf: number;
+  defaultThickness: number;
+  defaultKerf: number;
   units: 'mm' | 'in';
   fileFormat: 'svg';
   debug: boolean;
@@ -249,19 +255,19 @@ export interface IGeneratorSettings {
 
 export const SettingsTypeDef: JSONTypeDefProperties = {
   properties: {
-    thickness: {
+    defaultThickness: {
       type: 'float64' as const,
       metadata: {
         default: 3,
-        title: 'Material Thickness (units)',
+        title: 'Default Material Thickness (units)',
       },
     },
-    kerf: {
+    defaultKerf: {
       type: 'float64' as const,
       metadata: {
         default: 0.1,
-        title: 'Kerf',
-        description: 'Thickness of material removed by cutting tool (units)',
+        title: 'Default Kerf (units)',
+        description: 'Thickness of material removed by cutting tool',
       },
     },
     units: {
@@ -288,7 +294,7 @@ export const SettingsTypeDef: JSONTypeDefProperties = {
   },
   metadata: {
     title: 'Settings',
-    order: ['thickness', 'kerf', 'units', 'fileFormat', 'debug'],
+    order: ['defaultThickness', 'defaultKerf', 'units', 'fileFormat', 'debug'],
     startHidden: true,
   },
 };

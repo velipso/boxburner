@@ -6,7 +6,7 @@
 //
 
 import { type SurfaceBuilder } from '../SurfaceBuilder';
-import { type JSONTypeDef, type IGeneratorSettings } from '../types';
+import { type JSONTypeDef } from '../types';
 
 export abstract class EdgeBase {
   abstract name(): string;
@@ -14,14 +14,14 @@ export abstract class EdgeBase {
   abstract thickness(
     length: number,
     invert: boolean,
-    settings: IGeneratorSettings,
+    thickness: number,
     params: any,
   ): number;
   abstract draw(
     sb: SurfaceBuilder,
     length: number,
     invert: boolean,
-    settings: IGeneratorSettings,
+    thickness: number,
     params: any,
   ): void;
 }

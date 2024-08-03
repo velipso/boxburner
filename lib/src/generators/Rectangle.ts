@@ -18,6 +18,47 @@ export class Rectangle extends GeneratorBase {
   schema() {
     return {
       properties: {
+        label: {
+          type: 'string' as const,
+          nullable: true as const,
+          metadata: {
+            default: null,
+            defaultNotNull: '',
+            nullHint: 'none',
+            title: 'Label',
+          },
+        },
+        labelFontSize: {
+          type: 'float64' as const,
+          nullable: true as const,
+          metadata: {
+            default: null,
+            defaultNotNull: 10,
+            nullHint: 'auto',
+            title: 'Label Font Size (units)',
+          },
+        },
+        thickness: {
+          type: 'float64' as const,
+          nullable: true as const,
+          metadata: {
+            default: null,
+            defaultNotNull: 3,
+            nullHint: 'default',
+            title: 'Material Thickness (units)',
+          },
+        },
+        kerf: {
+          type: 'float64' as const,
+          nullable: true as const,
+          metadata: {
+            default: null,
+            defaultNotNull: 0.1,
+            nullHint: 'default',
+            title: 'Kerf (units)',
+            description: 'Thickness of material removed by cutting tool',
+          },
+        },
         width: {
           type: 'float64' as const,
           metadata: {
@@ -38,16 +79,37 @@ export class Rectangle extends GeneratorBase {
         edge4: allEdgesTypeDef({ title: 'Left' }),
       },
       metadata: {
-        order: ['width', 'height', 'edge1', 'edge2', 'edge3', 'edge4'],
+        order: [
+          'label',
+          'labelFontSize',
+          'thickness',
+          'kerf',
+          'width',
+          'height',
+          'edge1',
+          'edge2',
+          'edge3',
+          'edge4',
+        ],
       },
     };
   }
 
   generate(
     settings: IGeneratorSettings,
-    { width, height, edge1, edge2, edge3, edge4 }: any,
+    {
+      label,
+      labelFontSize,
+      thickness,
+      kerf,
+      width,
+      height,
+      edge1,
+      edge2,
+      edge3,
+      edge4,
+    }: any,
   ) {
-    const { thickness } = settings;
     const sb = new SurfaceBuilder();
     const e1 = allEdges.find((e) => e.name() === edge1.kind);
     if (!e1) {
@@ -66,10 +128,12 @@ export class Rectangle extends GeneratorBase {
       throw new Error('Bad left edge');
     }
 
-    const e1t = e1.thickness(width, false, settings, edge1.params);
-    const e2t = e2.thickness(height, false, settings, edge2.params);
-    const e3t = e3.thickness(width, false, settings, edge3.params);
-    const e4t = e4.thickness(height, false, settings, edge4.params);
+    const th =
+      typeof thickness === 'number' ? thickness : settings.defaultThickness;
+    const e1t = e1.thickness(width, false, th, edge1.params);
+    const e2t = e2.thickness(height, false, th, edge2.params);
+    const e3t = e3.thickness(width, false, th, edge3.params);
+    const e4t = e4.thickness(height, false, th, edge4.params);
 
     width -= Math.abs(e2t) + Math.abs(e4t);
     height -= Math.abs(e1t) + Math.abs(e3t);
@@ -78,7 +142,7 @@ export class Rectangle extends GeneratorBase {
     if (e4t < 0) {
       sb.border.forward(-e4t);
     }
-    e1.draw(sb, width, false, settings, edge1.params);
+    e1.draw(sb, width, false, th, edge1.params);
     if (e2t < 0) {
       sb.border.forward(-e2t);
     }
@@ -89,7 +153,7 @@ export class Rectangle extends GeneratorBase {
     if (e1t < 0) {
       sb.border.forward(-e1t);
     }
-    e2.draw(sb, height, false, settings, edge2.params);
+    e2.draw(sb, height, false, th, edge2.params);
     if (e3t < 0) {
       sb.border.forward(-e3t);
     }
@@ -100,7 +164,7 @@ export class Rectangle extends GeneratorBase {
     if (e2t < 0) {
       sb.border.forward(-e2t);
     }
-    e3.draw(sb, width, false, settings, edge3.params);
+    e3.draw(sb, width, false, th, edge3.params);
     if (e4t < 0) {
       sb.border.forward(-e4t);
     }
@@ -111,13 +175,52 @@ export class Rectangle extends GeneratorBase {
     if (e3t < 0) {
       sb.border.forward(-e3t);
     }
-    e4.draw(sb, height, false, settings, edge4.params);
+    e4.draw(sb, height, false, th, edge4.params);
     if (e1t < 0) {
       sb.border.forward(-e1t);
     }
 
     sb.border.turn(90);
 
-    return [sb.build(thickness)];
+    if (label) {
+      const lines = label.trim().split('\n');
+      const maxChars = lines.reduce(
+        (a: number, b: string) => Math.max(a, b.length),
+        0,
+      );
+      let chh = 0;
+      if (typeof labelFontSize === 'number') {
+        chh = labelFontSize;
+      } else {
+        // auto font size
+        chh = Math.min(
+          ((width - 5 - Math.abs(e2t) - Math.abs(e4t)) / maxChars) * 2,
+          (height - 5 - Math.abs(e1t) - Math.abs(e3t)) / lines.length,
+        );
+      }
+      const chw = chh / 2;
+      const sx = (width - chw * maxChars) / 2;
+      const sy = (height - chh * lines.length) / 2;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        for (let j = 0; j < line.length; j++) {
+          sb.scoreChar(
+            [sx + chw * j + chw * 0.15, sy + chh * i + chh * 0.15],
+            chw * 0.7,
+            chh * 0.7,
+            line.charAt(j),
+          );
+        }
+      }
+    }
+
+    const surface = sb.build(settings);
+    if (typeof thickness === 'number') {
+      surface.setThickness(thickness);
+    }
+    if (typeof kerf === 'number') {
+      surface.setKerf(kerf);
+    }
+    return [surface];
   }
 }

@@ -7,7 +7,6 @@
 
 import { EdgeBase } from './EdgeBase';
 import { type SurfaceBuilder } from '../SurfaceBuilder';
-import { type IGeneratorSettings } from '../types';
 
 export class ButtJoint extends EdgeBase {
   name() {
@@ -49,7 +48,7 @@ export class ButtJoint extends EdgeBase {
   thickness(
     _length: number,
     callerInvert: boolean,
-    { thickness }: IGeneratorSettings,
+    thickness: number,
     { length1, length2, invert: userInvert }: any,
   ) {
     const invert = callerInvert !== userInvert;
@@ -60,7 +59,7 @@ export class ButtJoint extends EdgeBase {
     sb: SurfaceBuilder,
     length: number,
     callerInvert: boolean,
-    { thickness }: IGeneratorSettings,
+    thickness: number,
     { invert: userInvert, length1, length2 }: any,
   ): void {
     const invert = callerInvert !== userInvert;

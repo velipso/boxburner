@@ -8,8 +8,14 @@
 import { type GeneratorBase } from './GeneratorBase';
 import { Rectangle } from './Rectangle';
 import { PlainBox } from './PlainBox';
+import { KerfTester } from './KerfTester';
 export * from './GeneratorBase';
 export * from './Rectangle';
 export * from './PlainBox';
+export * from './KerfTester';
 
-export const allGenerators: GeneratorBase[] = [new Rectangle(), new PlainBox()];
+export const allGenerators: GeneratorBase[] = [
+  new KerfTester(),
+  new PlainBox(),
+  new Rectangle(),
+];
