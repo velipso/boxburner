@@ -1419,7 +1419,29 @@ function App() {
         // TODO: this
       },
       properties: {
-        settings: SettingsTypeDef,
+        version: {
+          type: 'int32' as const,
+          metadata: {
+            default: 1,
+          },
+        },
+        settings: {
+          ...SettingsTypeDef,
+          properties: {
+            ...SettingsTypeDef.properties,
+            itemSpacing: {
+              type: 'float64' as const,
+              metadata: {
+                default: 10,
+                title: 'Item Spacing (units)',
+              },
+            },
+          },
+          metadata: {
+            ...SettingsTypeDef.metadata,
+            order: ['itemSpacing', ...SettingsTypeDef.metadata.order],
+          },
+        },
         generators: {
           elements: {
             discriminator: 'kind',
@@ -1476,7 +1498,7 @@ function App() {
               )
               .reduce((a, b) => ({ ...a, ...b }), {}),
             metadata: {
-              default: 'PlainBox',
+              default: 'BoxPlain',
               order: allGenerators.map((g) => g.name()),
             },
           },
@@ -1497,6 +1519,7 @@ function App() {
   const [jtdKey, setJtdKey] = useState(1);
   const [surfaces, setSurfaces] = useState<ISurfaceDetails[] | null>(null);
   const [generateError, setGenerateError] = useState('');
+  const itemSpacing = params.settings.itemSpacing;
   useEffect(() => {
     const surfaces: ISurfaceDetails[] = [];
     const errors: string[] = [];
@@ -1533,8 +1556,8 @@ function App() {
     for (const { surface, cutColor, holeColor, scoreColor } of surfaces) {
       const boundingBox = surface.borderBoundingBox();
       const area =
-        (boundingBox[1][0] - boundingBox[0][0]) *
-        (boundingBox[1][1] - boundingBox[0][1]);
+        (boundingBox[1][0] - boundingBox[0][0] + itemSpacing) *
+        (boundingBox[1][1] - boundingBox[0][1] + itemSpacing);
       totalArea += area;
       items.push({
         surface,
@@ -1555,21 +1578,20 @@ function App() {
     const targetWidth = Math.sqrt(totalArea);
     let rowHeight = 0;
     const nextOffset: Vec2 = [0, 0];
-    const spacing = 10;
     for (const it of items) {
       it.offset[0] = nextOffset[0] - it.boundingBox[0][0];
       it.offset[1] = nextOffset[1] - it.boundingBox[0][1];
       rowHeight = Math.max(rowHeight, it.boundingBoxSize[1]);
-      if (nextOffset[0] + spacing + it.boundingBoxSize[0] <= targetWidth) {
-        nextOffset[0] += spacing + it.boundingBoxSize[0];
+      if (nextOffset[0] + itemSpacing + it.boundingBoxSize[0] <= targetWidth) {
+        nextOffset[0] += itemSpacing + it.boundingBoxSize[0];
       } else {
         nextOffset[0] = 0;
-        nextOffset[1] += spacing + rowHeight;
+        nextOffset[1] += itemSpacing + rowHeight;
         rowHeight = 0;
       }
     }
     return items;
-  }, [surfaces]);
+  }, [surfaces, itemSpacing]);
   const onDownload = useCallback(() => {
     if (!surfaceItems || surfaceItems.length <= 0) {
       alert('Nothing to export!');
@@ -1622,10 +1644,36 @@ function App() {
     },
     [setParams],
   );
+  useEffect(() => {
+    try {
+      const kvs = window.location.search.substr(1).split('&');
+      for (const kv of kvs) {
+        const eq = kv.split('=');
+        if (eq.length === 2) {
+          const k = decodeURIComponent(eq[0]);
+          const v = decodeURIComponent(eq[1]);
+          if (k === 'p') {
+            const data = JSON.parse(v);
+            onImportData(data);
+            return;
+          }
+        }
+      }
+    } catch (_) {
+      // do nothing
+    }
+  }, []);
   const [exportModal, setExportModal] = useState('');
   const onExport = useCallback(() => {
     setExportModal(JSON.stringify(params, null, 2));
   }, [params, setExportModal]);
+  const onURL = useCallback(() => {
+    const base = window.location.href.replace(/\?.*$/, '');
+    window.open(
+      `${base}?p=${encodeURIComponent(JSON.stringify(params))}`,
+      '_blank',
+    );
+  }, [params]);
   const appContext = useMemo(
     (): IAppContext => ({
       units: params.settings.units,
@@ -1672,6 +1720,7 @@ function App() {
           <button onClick={onDownload}>↓ Download</button>
           <button onClick={onImport}>⍈ Import</button>
           <button onClick={onExport}>⍇ Export</button>
+          <button onClick={onURL}>⤷ URL</button>
         </div>
       </nav>
       <main key={jtdKey}>

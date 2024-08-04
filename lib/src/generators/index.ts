@@ -7,15 +7,15 @@
 
 import { type GeneratorBase } from './GeneratorBase';
 import { Rectangle } from './Rectangle';
-import { PlainBox } from './PlainBox';
+import { BoxPlain } from './BoxPlain';
 import { KerfTester } from './KerfTester';
 export * from './GeneratorBase';
 export * from './Rectangle';
-export * from './PlainBox';
+export * from './BoxPlain';
 export * from './KerfTester';
 
 export const allGenerators: GeneratorBase[] = [
+  new BoxPlain(),
   new KerfTester(),
-  new PlainBox(),
   new Rectangle(),
 ];

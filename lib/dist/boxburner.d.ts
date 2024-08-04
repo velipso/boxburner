@@ -320,7 +320,7 @@ declare class Rectangle extends GeneratorBase {
     generate(settings: IGeneratorSettings, { label, labelFontSize, thickness, kerf, width, height, edge1, edge2, edge3, edge4, }: any): Surface[];
 }
 
-declare class PlainBox extends GeneratorBase {
+declare class BoxPlain extends GeneratorBase {
     name(): string;
     schema(): {
         properties: {
@@ -388,6 +388,13 @@ declare class KerfTester extends GeneratorBase {
     name(): string;
     schema(): {
         properties: {
+            labels: {
+                type: "boolean";
+                metadata: {
+                    default: boolean;
+                    title: string;
+                };
+            };
             width: {
                 type: "float64";
                 metadata: {
@@ -436,7 +443,7 @@ declare class KerfTester extends GeneratorBase {
             order: string[];
         };
     };
-    generate(settings: IGeneratorSettings, { width, height, play, testCount, kerfStart, kerfIncrement }: any): Surface[];
+    generate(settings: IGeneratorSettings, { labels, width, height, play, testCount, kerfStart, kerfIncrement }: any): Surface[];
 }
 
 declare const allGenerators: GeneratorBase[];
@@ -724,4 +731,4 @@ declare function expandPathByKerf(offset: Vec2, commands: IDrawCommand[], kerf: 
     commands: IDrawCommand[];
 };
 
-export { AlongIntersection, BoxJoint, ButtJoint, DocumentBase, DocumentSVG, DrawBuilder, EdgeBase, GeneratorBase, type IDrawCommand, type IDrawCommandCurve, type IDrawCommandGeneric, type IDrawCommandLine, type IExportFile, type IGeneratorSettings, type IOffsetDrawCommands, type ITextCommand, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, KerfTester, MortiseAndTenonJoint, PlainBox, Rectangle, SettingsTypeDef, Surface, SurfaceBuilder, type Vec2, allEdges, allEdgesTypeDef, allGenerators, copyVec2, eps, expandPathByKerf, exportDocument, forwardVec2, linesIntersect };
+export { AlongIntersection, BoxJoint, BoxPlain, ButtJoint, DocumentBase, DocumentSVG, DrawBuilder, EdgeBase, GeneratorBase, type IDrawCommand, type IDrawCommandCurve, type IDrawCommandGeneric, type IDrawCommandLine, type IExportFile, type IGeneratorSettings, type IOffsetDrawCommands, type ITextCommand, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, KerfTester, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, SurfaceBuilder, type Vec2, allEdges, allEdgesTypeDef, allGenerators, copyVec2, eps, expandPathByKerf, exportDocument, forwardVec2, linesIntersect };

@@ -18,6 +18,13 @@ export class KerfTester extends GeneratorBase {
   schema() {
     return {
       properties: {
+        labels: {
+          type: 'boolean' as const,
+          metadata: {
+            default: true,
+            title: 'Labels',
+          },
+        },
         width: {
           type: 'float64' as const,
           metadata: {
@@ -63,14 +70,22 @@ export class KerfTester extends GeneratorBase {
         },
       },
       metadata: {
-        order: ['width', 'height', 'testCount', 'kerfStart', 'kerfIncrement'],
+        order: [
+          'labels',
+          'width',
+          'height',
+          'play',
+          'testCount',
+          'kerfStart',
+          'kerfIncrement',
+        ],
       },
     };
   }
 
   generate(
     settings: IGeneratorSettings,
-    { width, height, play, testCount, kerfStart, kerfIncrement }: any,
+    { labels, width, height, play, testCount, kerfStart, kerfIncrement }: any,
   ) {
     const { defaultThickness: thickness } = settings;
     const rect = new Rectangle();
@@ -103,21 +118,21 @@ export class KerfTester extends GeneratorBase {
           width,
           height,
           kerf,
-          label: kerf.toFixed(3),
           edge1: bx(false),
           edge2: bt(),
           edge3: bt(),
           edge4: bt(),
+          ...(labels ? { label: kerf.toFixed(3) } : {}),
         }),
         ...rect.generate(settings, {
           width,
           height,
           kerf,
-          label: kerf.toFixed(3),
           edge1: bt(),
           edge2: bt(),
           edge3: bx(true),
           edge4: bt(),
+          ...(labels ? { label: kerf.toFixed(3) } : {}),
         }),
       );
     }

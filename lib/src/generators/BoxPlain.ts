@@ -9,9 +9,9 @@ import { GeneratorBase } from './GeneratorBase';
 import { type IGeneratorSettings } from '../types';
 import { Rectangle } from './Rectangle';
 
-export class PlainBox extends GeneratorBase {
+export class BoxPlain extends GeneratorBase {
   name() {
-    return 'PlainBox';
+    return 'BoxPlain';
   }
 
   schema() {
