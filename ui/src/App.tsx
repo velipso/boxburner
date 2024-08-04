@@ -1275,7 +1275,10 @@ function Canvas({
       buttons: number;
       pos: Vec2;
     } = null;
-    const mousePos = (e: MouseEvent): Vec2 => [dpr * e.layerX, dpr * e.layerY];
+    const mousePos = (e: MouseEvent): Vec2 => {
+      const rect = cnv.getBoundingClientRect();
+      return [dpr * (e.clientX - rect.left), dpr * (e.clientY - rect.top)];
+    };
     const mouseMove = (pos: Vec2) => {
       if (mousedown) {
         const c1 = camera.screenToPoint(pos);
