@@ -1,7 +1,7 @@
 boxburner
 =========
 
-<a href="https://sean.fun/i/boxburer" target="_blank"><img src="./screenshot.png" width="100%" /></a>
+<a href="https://sean.fun/i/boxburner" target="_blank"><img src="./screenshot.png" width="100%" /></a>
 
 [Boxburner](https://sean.fun/i/boxburner) is a tool for generating SVG files for laser cutting
 devices.
