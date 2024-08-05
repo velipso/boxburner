@@ -5,10 +5,10 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { EdgeBase } from './EdgeBase';
+import { JointBase } from './JointBase';
 import { type SurfaceBuilder } from '../SurfaceBuilder';
 
-export class ButtJoint extends EdgeBase {
+export class ButtJoint extends JointBase {
   name() {
     return 'ButtJoint';
   }
@@ -45,7 +45,7 @@ export class ButtJoint extends EdgeBase {
     };
   }
 
-  thickness(
+  jointThickness(
     _length: number,
     callerInvert: boolean,
     thickness: number,
@@ -55,7 +55,7 @@ export class ButtJoint extends EdgeBase {
     return (invert ? -length2 : length1) * thickness;
   }
 
-  draw(
+  jointDraw(
     sb: SurfaceBuilder,
     length: number,
     callerInvert: boolean,

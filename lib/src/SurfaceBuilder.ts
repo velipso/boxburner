@@ -99,14 +99,14 @@ export class SurfaceBuilder {
   cut(offset: Vec2, angle = 0) {
     const db = new DrawBuilder();
     db.turn(angle);
-    this.cuts.push({ offset, db });
+    this.cuts.push({ offset: copyVec2(offset), db });
     return db;
   }
 
   score(offset: Vec2, angle = 0) {
     const db = new DrawBuilder();
     db.turn(angle);
-    this.scores.push({ offset, db });
+    this.scores.push({ offset: copyVec2(offset), db });
     return db;
   }
 
@@ -146,19 +146,26 @@ export class SurfaceBuilder {
   }
 
   build(defaultValues: { defaultThickness: number; defaultKerf: number }) {
+    const borderOffset = this.border.close();
     return new Surface(
       defaultValues,
-      this.border.close().build(),
-      this.holes.map(({ offset, db }) => ({
-        offset,
-        commands: db.close().build(),
-      })),
+      this.border.build(),
+      this.holes.map(({ offset, db }) => {
+        const holeOffset = db.close();
+        return {
+          offset: [
+            offset[0] + borderOffset[0] + holeOffset[0],
+            offset[1] + borderOffset[1] + holeOffset[1],
+          ],
+          commands: db.build(),
+        };
+      }),
       this.cuts.map(({ offset, db }) => ({
-        offset,
+        offset: [offset[0] + borderOffset[0], offset[1] + borderOffset[1]],
         commands: db.build(),
       })),
       this.scores.map(({ offset, db }) => ({
-        offset,
+        offset: [offset[0] + borderOffset[0], offset[1] + borderOffset[1]],
         commands: db.build(),
       })),
       this.text,

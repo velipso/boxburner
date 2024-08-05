@@ -25,6 +25,8 @@ import {
   expandPathByKerf,
 } from '@velipso/boxburner';
 import AutoAnimate from './AutoAnimate';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 interface IAppContext {
   units: string;
@@ -431,7 +433,7 @@ function InputDiscriminator({
   setValue: (v: any | ((prevValue: any) => any)) => void;
 }) {
   const [hide, setHide] = useState(true);
-  const discVal = value[typedef.discriminator];
+  const discVal = value?.[typedef.discriminator] ?? null;
   const [objects, setObjects] = useState(() => {
     const objects = new Map<string, any>();
     for (const k of typedef.metadata.order) {
@@ -444,8 +446,9 @@ function InputDiscriminator({
     return objects;
   });
   const setDiscVal = useCallback(
-    (disc: string | ((p: string) => string)) => {
-      setValue(objects.get(typeof disc === 'function' ? disc(discVal) : disc));
+    (disc: string | null | ((p: string | null) => string | null)) => {
+      const v = typeof disc === 'function' ? disc(discVal) : disc;
+      setValue(v === null ? null : objects.get(v));
     },
     [discVal, objects, setValue],
   );
@@ -463,33 +466,46 @@ function InputDiscriminator({
     <>
       <MetaTitle metadata={typedef.metadata} />
       <div className="hide-wrap">
-        <HideButton hide={hide} setHide={setHide} />
+        <HideButton
+          disabled={discVal === null}
+          hide={discVal === null ? true : hide}
+          setHide={discVal === null ? () => {} : setHide}
+        />
         <Select
-          options={typedef.metadata.order.map((k) => ({
-            label: typedef.mapping[k].metadata.title || k,
-            value: k,
-          }))}
+          options={[
+            ...(typedef.nullable
+              ? [{ label: typedef.metadata.nullHint || '<none>', value: null }]
+              : []),
+            ...typedef.metadata.order.map((k) => ({
+              label: typedef.mapping[k].metadata.title || k,
+              value: k,
+            })),
+          ]}
           value={discVal}
           setValue={setDiscVal}
         />
       </div>
-      <InputProperties
-        hide={hide}
-        key={discVal}
-        skipTitle={true}
-        schema={schema}
-        typedef={typedef.mapping[discVal]}
-        value={value}
-        setValue={setProperties}
-      />
+      {discVal !== null && (
+        <InputProperties
+          hide={hide}
+          key={discVal}
+          skipTitle={true}
+          schema={schema}
+          typedef={typedef.mapping[discVal]}
+          value={value}
+          setValue={setProperties}
+        />
+      )}
     </>
   );
 }
 
 function HideButton({
+  disabled,
   hide,
   setHide,
 }: {
+  disabled?: boolean;
   hide?: boolean;
   setHide?: (hide: boolean | ((prevValue: boolean) => boolean)) => void;
 }) {
@@ -499,7 +515,11 @@ function HideButton({
   return (
     <>
       {setHide && (
-        <button className="hide-button" onClick={toggleHidden}>
+        <button
+          className="hide-button"
+          style={disabled ? { opacity: 0.5 } : undefined}
+          onClick={toggleHidden}
+        >
           {hide ? '▶' : '▼'}
         </button>
       )}
@@ -950,6 +970,7 @@ function wrapFillText(
 
 function drawPathFromCommands(
   ctx: CanvasRenderingContext2D,
+  close: boolean,
   { offset, commands }: { offset: Vec2; commands: IDrawCommand[] },
 ) {
   ctx.beginPath();
@@ -971,7 +992,9 @@ function drawPathFromCommands(
         break;
     }
   }
-  ctx.closePath();
+  if (close) {
+    ctx.closePath();
+  }
 }
 
 interface ISurfaceDetails {
@@ -992,14 +1015,20 @@ interface ISurfaceItem {
   scoreColor: string;
 }
 
-function Canvas({
+function Canvas3D({
+  grid,
   units,
   items,
   error,
+  onView,
+  onGrid,
 }: {
+  grid: boolean;
   units: string;
   items: ISurfaceItem[];
   error: string;
+  onView: () => void;
+  onGrid: () => void;
 }) {
   const [cnv, setCnv] = useState<HTMLCanvasElement | null>(null);
   const canvasRef = useCallback(
@@ -1008,15 +1037,151 @@ function Canvas({
     },
     [setCnv],
   );
-  const [grid, setGrid] = useState(true);
-  const [view2D, setView2D] = useState(true);
-  const onGrid = useCallback(() => {
-    setGrid((g) => !g);
-  }, [setGrid]);
-  const onView2D = useCallback(() => {
-    setView2D((v) => !v);
-  }, [setView2D]);
+  const scene3d = useMemo(() => {
+    if (!cnv) {
+      return null;
+    }
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xe3e6ed);
+    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(200, 200);
 
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshLambertMaterial({
+      color: new THREE.Color(0xddbe9d),
+      side: THREE.DoubleSide,
+    });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.rotation.x += 0.4;
+    cube.rotation.y += 0.4;
+    scene.add(cube);
+
+    scene.add(new THREE.AmbientLight(0xf0f0f0, 1));
+
+    const light = new THREE.SpotLight(0xffffff, 2);
+    light.position.set(0, 150, 0);
+    light.angle = Math.PI * 0.2;
+    light.decay = 0;
+    scene.add(light);
+
+    const dlight = new THREE.DirectionalLight(0xffffff, 2);
+    scene.add(dlight);
+
+    const grid = new THREE.GridHelper(
+      2000,
+      100,
+      new THREE.Color(0x888888),
+      new THREE.Color(0xcccccc),
+    );
+    grid.position.y = -9;
+    scene.add(grid);
+
+    camera.position.set(0, 0, 2);
+    const controls = new OrbitControls(camera, cnv);
+    return { scene, camera, renderer, light, dlight, controls };
+  }, [cnv]);
+
+  const ctx = useMemo(() => cnv?.getContext('2d'), [cnv]);
+  const dpr = window.devicePixelRatio || 1;
+  const { debug } = useAppContext();
+  const redraw = useCallback(() => {
+    if (!cnv || !ctx || !scene3d) {
+      return;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cnv.width, cnv.height);
+    scene3d.dlight.position.set(
+      scene3d.camera.position.x + 0.32,
+      scene3d.camera.position.y + 0.39,
+      scene3d.camera.position.z - 1.3,
+    );
+    scene3d.renderer.render(scene3d.scene, scene3d.camera);
+    ctx.drawImage(scene3d.renderer.domElement, 0, 0, cnv.width, cnv.height);
+  }, [cnv, ctx, items, grid, dpr, error, units, debug, scene3d]);
+  useEffect(() => {
+    redraw();
+  }, [redraw]);
+
+  const onCenter = useCallback(() => {
+    if (!cnv) {
+      return;
+    }
+    redraw();
+  }, [cnv, redraw]);
+
+  const firstResize = useRef(true);
+  useEffect(() => {
+    if (!cnv || !ctx || !scene3d) {
+      return;
+    }
+    const onResize = () => {
+      const parent = cnv.parentElement;
+      if (parent) {
+        const width = Math.floor(parent.clientWidth);
+        const height = Math.floor(parent.clientHeight);
+        cnv.width = width * dpr;
+        cnv.height = height * dpr;
+        scene3d.renderer.setPixelRatio(dpr);
+        scene3d.renderer.setSize(width, height);
+        scene3d.camera.aspect = width / height;
+        scene3d.camera.updateProjectionMatrix();
+        cnv.style.width = `${width}px`;
+        cnv.style.height = `${height}px`;
+        if (firstResize.current) {
+          firstResize.current = false;
+          onCenter();
+        } else {
+          redraw();
+        }
+      }
+    };
+
+    window.addEventListener('resize', onResize);
+    onResize();
+
+    scene3d.controls.addEventListener('change', redraw);
+
+    return () => {
+      scene3d.controls.dispose();
+      window.removeEventListener('resize', onResize);
+    };
+  }, [cnv, onCenter, firstResize, dpr, redraw, scene3d]);
+
+  return (
+    <>
+      <canvas ref={canvasRef} />
+      <div className="status">
+        <button onClick={onView}>View: 3D (WIP)</button>
+        <button onClick={onGrid}>Grid: {grid ? 'On' : 'Off'}</button>
+        <button onClick={onCenter}>Center</button>
+      </div>
+    </>
+  );
+}
+
+function Canvas2D({
+  grid,
+  units,
+  items,
+  error,
+  onView,
+  onGrid,
+}: {
+  grid: boolean;
+  units: string;
+  items: ISurfaceItem[];
+  error: string;
+  onView: () => void;
+  onGrid: () => void;
+}) {
+  const [cnv, setCnv] = useState<HTMLCanvasElement | null>(null);
+  const canvasRef = useCallback(
+    (cnv: HTMLCanvasElement | null) => {
+      setCnv(cnv);
+    },
+    [setCnv],
+  );
   const ctx = useMemo(() => cnv?.getContext('2d'), [cnv]);
   const dpr = window.devicePixelRatio || 1;
   const camera = useMemo(() => new Camera(), []);
@@ -1095,6 +1260,7 @@ function Canvas({
         if (kerf > 0) {
           drawPathFromCommands(
             ctx,
+            true,
             expandPathByKerf(offset, surface.border, kerf),
           );
           ctx.lineWidth = (4 * dpr) / camera.zoomFactor();
@@ -1103,6 +1269,7 @@ function Canvas({
           for (const hole of surface.holes) {
             drawPathFromCommands(
               ctx,
+              true,
               expandPathByKerf(
                 [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
                 hole.commands,
@@ -1132,13 +1299,13 @@ function Canvas({
 
     for (const it of items) {
       const { surface, offset } = it;
-      drawPathFromCommands(ctx, { offset, commands: surface.border });
+      drawPathFromCommands(ctx, true, { offset, commands: surface.border });
       ctx.lineWidth = (3 * dpr) / camera.zoomFactor();
       ctx.strokeStyle = colorPalette[it.cutColor];
       ctx.stroke();
 
       for (const hole of surface.holes) {
-        drawPathFromCommands(ctx, {
+        drawPathFromCommands(ctx, true, {
           offset: [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
           commands: hole.commands,
         });
@@ -1147,7 +1314,7 @@ function Canvas({
         ctx.stroke();
       }
       for (const score of surface.scores) {
-        drawPathFromCommands(ctx, {
+        drawPathFromCommands(ctx, false, {
           offset: [offset[0] + score.offset[0], offset[1] + score.offset[1]],
           commands: score.commands,
         });
@@ -1342,14 +1509,14 @@ function Canvas({
       cnv.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', onResize);
     };
-  }, [cnv, camera, onCenter, firstResize, dpr]);
+  }, [cnv, camera, onCenter, firstResize, dpr, redraw]);
 
   return (
     <>
       <canvas ref={canvasRef} />
       <div className="status">
+        <button onClick={onView}>View: 2D</button>
         <button onClick={onGrid}>Grid: {grid ? 'On' : 'Off'}</button>
-        <button onClick={onView2D}>View: {view2D ? '2D' : '3D'}</button>
         <button onClick={onCenter}>Center</button>
       </div>
     </>
@@ -1677,6 +1844,14 @@ function App() {
       '_blank',
     );
   }, [params]);
+  const [view, setView] = useState('2D');
+  const onView = useCallback(() => {
+    setView((v) => (v === '2D' ? '3D' : '2D'));
+  }, [setView]);
+  const [grid, setGrid] = useState(true);
+  const onGrid = useCallback(() => {
+    setGrid((g) => !g);
+  }, [setGrid]);
   const appContext = useMemo(
     (): IAppContext => ({
       units: params.settings.units,
@@ -1727,13 +1902,26 @@ function App() {
         </div>
       </nav>
       <main key={jtdKey}>
-        {surfaceItems && (
-          <Canvas
-            items={surfaceItems}
-            error={generateError}
-            units={params.settings.units}
-          />
-        )}
+        {surfaceItems &&
+          (view === '2D' ? (
+            <Canvas2D
+              grid={grid}
+              items={surfaceItems}
+              error={generateError}
+              units={params.settings.units}
+              onView={onView}
+              onGrid={onGrid}
+            />
+          ) : (
+            <Canvas3D
+              grid={grid}
+              items={surfaceItems}
+              error={generateError}
+              units={params.settings.units}
+              onView={onView}
+              onGrid={onGrid}
+            />
+          ))}
       </main>
     </AppContext.Provider>
   );

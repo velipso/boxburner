@@ -110,8 +110,17 @@ export function expandPathByKerf(
     offset: Vec2;
   } => {
     const cmd = commands[i];
-    const last = commands[i === 0 ? commands.length - 1 : i - 1];
-    const angle = Math.atan2(last.to[1] - cmd.to[1], last.to[0] - cmd.to[0]);
+    let angle = 0;
+    switch (cmd.kind) {
+      case 'L': {
+        const last = commands[i === 0 ? commands.length - 1 : i - 1];
+        angle = Math.atan2(last.to[1] - cmd.to[1], last.to[0] - cmd.to[0]);
+        break;
+      }
+      case 'C':
+        angle = Math.atan2(cmd.c2[1] - cmd.to[1], cmd.c2[0] - cmd.to[0]);
+        break;
+    }
     const normal = angle + Math.PI / 2;
     const sx = halfKerf * Math.cos(normal);
     const sy = halfKerf * Math.sin(normal);
@@ -125,57 +134,73 @@ export function expandPathByKerf(
       angle: a1,
       offset: [sx, sy],
     } = offsetAt(i);
+    const {
+      angle: a2,
+      offset: [lx, ly],
+    } = offsetAt((i + commands.length - 1) % commands.length);
+    if (Math.abs(a1 - a2) >= eps) {
+      const dang = Math.min(
+        Math.abs(a1 - a2),
+        Math.abs(a1 + Math.PI * 2 - a2),
+        Math.abs(a1 - (a2 + Math.PI * 2)),
+      );
+      const cdist = (halfKerf * 4 * Math.tan(dang / 4)) / 3;
+      roundedCommands.push(newCommands.length);
+      newCommands.push({
+        kind: 'C',
+        c1: [
+          last.to[0] + lx - cdist * Math.cos(a2),
+          last.to[1] + ly - cdist * Math.sin(a2),
+        ],
+        c2: [
+          last.to[0] + sx + cdist * Math.cos(a1),
+          last.to[1] + sy + cdist * Math.sin(a1),
+        ],
+        to: [last.to[0] + sx, last.to[1] + sy],
+      });
+    }
     switch (cmd.kind) {
       case 'L': {
-        const {
-          angle: a2,
-          offset: [lx, ly],
-        } = offsetAt((i + commands.length - 1) % commands.length);
-        const dang = Math.min(
-          Math.abs(a1 - a2),
-          Math.abs(a1 + Math.PI * 2 - a2),
-          Math.abs(a1 - (a2 + Math.PI * 2)),
-        );
-        const cdist = (halfKerf * 4 * Math.tan(dang / 4)) / 3;
-        roundedCommands.push(newCommands.length);
-        newCommands.push({
-          kind: 'C',
-          c1: [
-            last.to[0] + lx - cdist * Math.cos(a2),
-            last.to[1] + ly - cdist * Math.sin(a2),
-          ],
-          c2: [
-            last.to[0] + sx + cdist * Math.cos(a1),
-            last.to[1] + sy + cdist * Math.sin(a1),
-          ],
-          to: [last.to[0] + sx, last.to[1] + sy],
-        });
         newCommands.push({
           kind: 'L',
           to: [cmd.to[0] + sx, cmd.to[1] + sy],
         });
         break;
       }
-      case 'C':
+      case 'C': {
+        const a1 = Math.atan2(last.to[1] - cmd.c1[1], last.to[0] - cmd.c1[0]);
+        const normal1 = a1 + Math.PI / 2;
+        const s1x = halfKerf * Math.cos(normal1);
+        const s1y = halfKerf * Math.sin(normal1);
+        const a2 = Math.atan2(cmd.c2[1] - cmd.to[1], cmd.c2[0] - cmd.to[0]);
+        const normal2 = a2 + Math.PI / 2;
+        const s2x = halfKerf * Math.cos(normal2);
+        const s2y = halfKerf * Math.sin(normal2);
         newCommands.push({
           kind: 'C',
-          c1: [cmd.c1[0] + sx, cmd.c1[1] + sy],
-          c2: [cmd.c2[0] + sx, cmd.c2[1] + sy],
-          to: [cmd.to[0] + sx, cmd.to[1] + sy],
+          c1: [cmd.c1[0] + s1x, cmd.c1[1] + s1y],
+          c2: [cmd.c2[0] + s2x, cmd.c2[1] + s2y],
+          to: [cmd.to[0] + s2x, cmd.to[1] + s2y],
         });
         break;
+      }
     }
   }
   // create loops from inner rounded corners
   for (const i of roundedCommands) {
-    const prev2 =
-      newCommands[(i + newCommands.length - 2) % newCommands.length];
     const prev = newCommands[(i + newCommands.length - 1) % newCommands.length];
     const here = newCommands[i];
     const next = newCommands[(i + 1) % newCommands.length];
-    if (prev.kind === 'L' && here.kind === 'C' && next.kind === 'L') {
+    if (here.kind === 'C') {
       // check if next/prev intersect, and if so, turn here into a loop
-      const res = linesIntersect(prev2.to, prev.to, here.to, next.to);
+      const res = linesIntersect(
+        prev.kind === 'L'
+          ? newCommands[(i + newCommands.length - 2) % newCommands.length].to
+          : prev.c2,
+        prev.to,
+        here.to,
+        next.kind === 'L' ? next.to : next.c1,
+      );
       if (
         res &&
         res.alongA === AlongIntersection.BetweenStartAndEnd &&

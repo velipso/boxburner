@@ -130,19 +130,19 @@ export class Rectangle extends GeneratorBase {
 
     const th =
       typeof thickness === 'number' ? thickness : settings.defaultThickness;
-    const e1t = e1.thickness(width, false, th, edge1.params);
-    const e2t = e2.thickness(height, false, th, edge2.params);
-    const e3t = e3.thickness(width, false, th, edge3.params);
-    const e4t = e4.thickness(height, false, th, edge4.params);
+    const e1t = e1.thickness(width, th, edge1.params);
+    const e2t = e2.thickness(height, th, edge2.params);
+    const e3t = e3.thickness(width, th, edge3.params);
+    const e4t = e4.thickness(height, th, edge4.params);
 
-    width -= Math.abs(e2t) + Math.abs(e4t);
-    height -= Math.abs(e1t) + Math.abs(e3t);
+    width -= Math.max(0, e2t) + Math.max(0, e4t);
+    height -= Math.max(0, e1t) + Math.max(0, e3t);
 
     // top edge
     if (e4t < 0) {
       sb.border.forward(-e4t);
     }
-    e1.draw(sb, width, false, th, edge1.params);
+    e1.draw(sb, width, th, edge1.params);
     if (e2t < 0) {
       sb.border.forward(-e2t);
     }
@@ -153,7 +153,7 @@ export class Rectangle extends GeneratorBase {
     if (e1t < 0) {
       sb.border.forward(-e1t);
     }
-    e2.draw(sb, height, false, th, edge2.params);
+    e2.draw(sb, height, th, edge2.params);
     if (e3t < 0) {
       sb.border.forward(-e3t);
     }
@@ -164,7 +164,7 @@ export class Rectangle extends GeneratorBase {
     if (e2t < 0) {
       sb.border.forward(-e2t);
     }
-    e3.draw(sb, width, false, th, edge3.params);
+    e3.draw(sb, width, th, edge3.params);
     if (e4t < 0) {
       sb.border.forward(-e4t);
     }
@@ -175,7 +175,7 @@ export class Rectangle extends GeneratorBase {
     if (e3t < 0) {
       sb.border.forward(-e3t);
     }
-    e4.draw(sb, height, false, th, edge4.params);
+    e4.draw(sb, height, th, edge4.params);
     if (e1t < 0) {
       sb.border.forward(-e1t);
     }

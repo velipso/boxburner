@@ -221,6 +221,8 @@ export type JSONTypeDefDiscriminator =
       metadata: {
         default: string | null;
         order: string[];
+        defaultNotNull?: string;
+        nullHint?: string;
         title?: string;
         description?: string;
         [key: string]: any;

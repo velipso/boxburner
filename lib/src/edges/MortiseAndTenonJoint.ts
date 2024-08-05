@@ -5,11 +5,18 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { EdgeBase } from './EdgeBase';
+import { JointBase } from './JointBase';
+import { type EdgeBase } from './EdgeBase';
 import { type SurfaceBuilder } from '../SurfaceBuilder';
 import { copyVec2, forwardVec2 } from '../util';
+import { BoxJoint } from './BoxJoint';
+import { ButtJoint } from './ButtJoint';
+import { LegEdge } from './LegEdge';
+import { edgeListTypeDef } from './typedef';
 
-export class MortiseAndTenonJoint extends EdgeBase {
+const otherEdges: EdgeBase[] = [new BoxJoint(), new ButtJoint(), new LegEdge()];
+
+export class MortiseAndTenonJoint extends JointBase {
   name() {
     return 'MortiseAndTenonJoint';
   }
@@ -90,6 +97,15 @@ export class MortiseAndTenonJoint extends EdgeBase {
             description: 'Reserved space near center to exclude joints (units)',
           },
         },
+        mortiseEdge: edgeListTypeDef(
+          otherEdges,
+          {
+            default: null,
+            defaultNotNull: 'LegEdge',
+            title: 'Mortise Edge',
+          },
+          true,
+        ),
       },
       metadata: {
         order: [
@@ -102,22 +118,33 @@ export class MortiseAndTenonJoint extends EdgeBase {
           'thicknessPlay',
           'cornerDistance',
           'centerDistance',
+          'mortiseEdge',
         ],
       },
     };
   }
 
-  thickness(
-    _length: number,
+  jointThickness(
+    length: number,
     callerInvert: boolean,
     thickness: number,
-    { tenonLength, invert: userInvert }: any,
+    { tenonLength, invert: userInvert, mortiseEdge }: any,
   ) {
     const invert = callerInvert !== userInvert;
-    return invert ? 0 : tenonLength * thickness;
+    if (invert) {
+      if (mortiseEdge) {
+        const edge = otherEdges.find((e) => e.name() === mortiseEdge.kind);
+        if (!edge) {
+          throw new Error('Invalid mortise edge');
+        }
+        return edge.thickness(length, thickness, mortiseEdge.params);
+      }
+      return 0;
+    }
+    return tenonLength * thickness;
   }
 
-  draw(
+  jointDraw(
     sb: SurfaceBuilder,
     length: number,
     callerInvert: boolean,
@@ -132,6 +159,7 @@ export class MortiseAndTenonJoint extends EdgeBase {
       thicknessPlay,
       cornerDistance,
       centerDistance,
+      mortiseEdge,
     }: any,
   ): void {
     const invert = callerInvert !== userInvert;
@@ -140,6 +168,9 @@ export class MortiseAndTenonJoint extends EdgeBase {
     let finger = () => {};
     let space = () => {};
     const fingers = (count: number) => {
+      if (count > 10000) {
+        throw new Error('Too many fingers');
+      }
       finger();
       for (let i = 0; i < count; i++) {
         space();
@@ -151,7 +182,15 @@ export class MortiseAndTenonJoint extends EdgeBase {
       const start = copyVec2(sb.border.cursor());
       const ang = sb.border.angle;
       forwardVec2(start, ang + 90, holeDistance + t - thicknessPlay);
-      sb.border.forward(length);
+      if (mortiseEdge) {
+        const edge = otherEdges.find((e) => e.name() === mortiseEdge.kind);
+        if (!edge) {
+          throw new Error('Invalid mortise edge');
+        }
+        edge.draw(sb, length, thickness, mortiseEdge.params);
+      } else {
+        sb.border.forward(length);
+      }
       forward = (length: number) => {
         forwardVec2(start, ang, length);
       };

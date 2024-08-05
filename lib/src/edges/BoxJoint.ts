@@ -5,10 +5,10 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { EdgeBase } from './EdgeBase';
+import { JointBase } from './JointBase';
 import { type SurfaceBuilder } from '../SurfaceBuilder';
 
-export class BoxJoint extends EdgeBase {
+export class BoxJoint extends JointBase {
   name() {
     return 'BoxJoint';
   }
@@ -98,7 +98,7 @@ export class BoxJoint extends EdgeBase {
     };
   }
 
-  thickness(
+  jointThickness(
     _length: number,
     callerInvert: boolean,
     thickness: number,
@@ -108,7 +108,7 @@ export class BoxJoint extends EdgeBase {
     return (invert ? -length2 : length1) * thickness;
   }
 
-  draw(
+  jointDraw(
     sb: SurfaceBuilder,
     length: number,
     callerInvert: boolean,
@@ -142,6 +142,9 @@ export class BoxJoint extends EdgeBase {
         .forward(iplay / 2);
     const space = () => db.forward(width2);
     const fingers = (count: number) => {
+      if (count > 10000) {
+        throw new Error('Too many fingers');
+      }
       finger();
       for (let i = 0; i < count; i++) {
         space();

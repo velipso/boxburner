@@ -6,7 +6,7 @@
 //
 
 import { type IDrawCommand, type Vec2 } from './types';
-import { forwardVec2, eps } from './util';
+import { copyVec2, forwardVec2, eps } from './util';
 
 export class DrawBuilder {
   commands: IDrawCommand[] = [];
@@ -79,13 +79,33 @@ export class DrawBuilder {
     return this;
   }
 
-  close() {
+  forwardCurve(
+    c1Dist: number,
+    turn1: number,
+    c2Dist: number,
+    turn2: number,
+    toDist: number,
+  ) {
+    const c1 = forwardVec2(copyVec2(this.cursor()), this.angle, c1Dist);
+    this.turn(turn1);
+    const c2 = forwardVec2(copyVec2(c1), this.angle, c2Dist);
+    this.turn(turn2);
+    const to = forwardVec2(copyVec2(c2), this.angle, toDist);
+    this.curveTo(c1, c2, to);
+    return this;
+  }
+
+  // closing a shape can cause it to move in relation to [0, 0], so when you close, it will return
+  // the offset that the entire shape has moved
+  close(): Vec2 {
     this.lineTo([0, 0]);
     const first = this.commands[0];
     const last = this.commands[this.commands.length - 1];
     if (last?.kind === 'L' && first?.kind === 'L') {
       // combine colliner segments
-      const p1: Vec2 = this.commands[this.commands.length - 2]?.to ?? [0, 0];
+      const p1 = copyVec2(
+        this.commands[this.commands.length - 2]?.to ?? [0, 0],
+      );
       const p2 = last.to; // should be [0, 0]
       const p3 = first.to;
       const dx1 = p1[0] - p2[0];
@@ -96,7 +116,7 @@ export class DrawBuilder {
         this.commands.shift();
       } else if (Math.abs(dx1 * dy2 - dx2 * dy1) >= eps) {
         // points aren't collinear, so bail
-        return this;
+        return [0, 0];
       }
       this.commands.pop();
       for (const cmd of this.commands) {
@@ -109,8 +129,9 @@ export class DrawBuilder {
           cmd.c2[1] -= p1[1];
         }
       }
+      return [-p1[0], -p1[1]];
     }
-    return this;
+    return [0, 0];
   }
 
   build() {

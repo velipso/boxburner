@@ -6,15 +6,21 @@
 //
 
 import { type GeneratorBase } from './GeneratorBase';
-import { Rectangle } from './Rectangle';
+import { BoxCardstock } from './BoxCardstock';
+import { BoxNested } from './BoxNested';
 import { BoxPlain } from './BoxPlain';
 import { KerfTester } from './KerfTester';
+import { Rectangle } from './Rectangle';
 export * from './GeneratorBase';
-export * from './Rectangle';
+export * from './BoxCardstock';
+export * from './BoxNested';
 export * from './BoxPlain';
 export * from './KerfTester';
+export * from './Rectangle';
 
 export const allGenerators: GeneratorBase[] = [
+  new BoxCardstock(),
+  new BoxNested(),
   new BoxPlain(),
   new KerfTester(),
   new Rectangle(),

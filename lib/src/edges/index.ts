@@ -6,53 +6,36 @@
 //
 
 import { type EdgeBase } from './EdgeBase';
-import { ButtJoint } from './ButtJoint';
+import { type JointBase } from './JointBase';
 import { BoxJoint } from './BoxJoint';
+import { ButtJoint } from './ButtJoint';
+import { LegEdge } from './LegEdge';
 import { MortiseAndTenonJoint } from './MortiseAndTenonJoint';
-import {
-  type JSONTypeDefDiscriminator,
-  type JSONTypeDefProperties,
-} from '../types';
+import { type JSONTypeDefDiscriminator } from '../types';
+import { edgeListTypeDef } from './typedef';
 export * from './EdgeBase';
-export * from './ButtJoint';
+export * from './JointBase';
 export * from './BoxJoint';
+export * from './ButtJoint';
 export * from './MortiseAndTenonJoint';
+export * from './typedef';
 
 export const allEdges: EdgeBase[] = [
-  new ButtJoint(),
   new BoxJoint(),
+  new ButtJoint(),
+  new LegEdge(),
   new MortiseAndTenonJoint(),
 ];
 
-export function allEdgesTypeDef(metadata: any = {}): JSONTypeDefDiscriminator {
-  return {
-    discriminator: 'kind',
-    mapping: allEdges
-      .map(
-        (e): Record<string, JSONTypeDefProperties> => ({
-          [e.name()]: {
-            properties: {
-              kind: {
-                type: 'string' as const,
-                metadata: {
-                  default: e.name(),
-                  title: e.name(),
-                },
-              },
-              params: e.schema(),
-            },
-            metadata: {
-              order: ['params'],
-              untabParams: true,
-            },
-          },
-        }),
-      )
-      .reduce((a, b) => ({ ...a, ...b }), {}),
-    metadata: {
-      default: allEdges[0].name(),
-      order: allEdges.map((e) => e.name()),
-      ...metadata,
-    },
-  };
+export const allJoints: JointBase[] = [
+  new BoxJoint(),
+  new ButtJoint(),
+  new MortiseAndTenonJoint(),
+];
+
+export function allEdgesTypeDef(
+  metadata: any = {},
+  nullable?: boolean,
+): JSONTypeDefDiscriminator {
+  return edgeListTypeDef(allEdges, metadata, nullable);
 }

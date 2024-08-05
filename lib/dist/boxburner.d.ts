@@ -184,6 +184,8 @@ type JSONTypeDefDiscriminator = {
     metadata: {
         default: string | null;
         order: string[];
+        defaultNotNull?: string;
+        nullHint?: string;
         title?: string;
         description?: string;
         [key: string]: any;
@@ -249,30 +251,10 @@ declare abstract class GeneratorBase {
     abstract generate(settings: IGeneratorSettings, params: any): Surface[];
 }
 
-declare class Rectangle extends GeneratorBase {
+declare class BoxCardstock extends GeneratorBase {
     name(): string;
     schema(): {
         properties: {
-            label: {
-                type: "string";
-                nullable: true;
-                metadata: {
-                    default: null;
-                    defaultNotNull: string;
-                    nullHint: string;
-                    title: string;
-                };
-            };
-            labelFontSize: {
-                type: "float64";
-                nullable: true;
-                metadata: {
-                    default: null;
-                    defaultNotNull: number;
-                    nullHint: string;
-                    title: string;
-                };
-            };
             thickness: {
                 type: "float64";
                 nullable: true;
@@ -301,6 +283,13 @@ declare class Rectangle extends GeneratorBase {
                     title: string;
                 };
             };
+            depth: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
             height: {
                 type: "float64";
                 metadata: {
@@ -308,16 +297,83 @@ declare class Rectangle extends GeneratorBase {
                     title: string;
                 };
             };
-            edge1: JSONTypeDefDiscriminator;
-            edge2: JSONTypeDefDiscriminator;
-            edge3: JSONTypeDefDiscriminator;
-            edge4: JSONTypeDefDiscriminator;
+            foot: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
         };
         metadata: {
             order: string[];
         };
     };
-    generate(settings: IGeneratorSettings, { label, labelFontSize, thickness, kerf, width, height, edge1, edge2, edge3, edge4, }: any): Surface[];
+    generate(settings: IGeneratorSettings, { thickness, kerf, width, depth, height, foot }: any): Surface[];
+}
+
+declare class BoxNested extends GeneratorBase {
+    name(): string;
+    schema(): {
+        properties: {
+            labels: {
+                type: "boolean";
+                metadata: {
+                    default: boolean;
+                    title: string;
+                };
+            };
+            width: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            depth: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            height: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            holeDistance: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            play: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            thicknessPlay: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+        };
+        metadata: {
+            order: string[];
+        };
+    };
+    generate(settings: IGeneratorSettings, { labels, width, depth, height, holeDistance, play, thicknessPlay }: any): Surface[];
 }
 
 declare class BoxPlain extends GeneratorBase {
@@ -446,6 +502,77 @@ declare class KerfTester extends GeneratorBase {
     generate(settings: IGeneratorSettings, { labels, width, height, play, testCount, kerfStart, kerfIncrement }: any): Surface[];
 }
 
+declare class Rectangle extends GeneratorBase {
+    name(): string;
+    schema(): {
+        properties: {
+            label: {
+                type: "string";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: string;
+                    nullHint: string;
+                    title: string;
+                };
+            };
+            labelFontSize: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    nullHint: string;
+                    title: string;
+                };
+            };
+            thickness: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    nullHint: string;
+                    title: string;
+                };
+            };
+            kerf: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    nullHint: string;
+                    title: string;
+                    description: string;
+                };
+            };
+            width: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            height: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            edge1: JSONTypeDefDiscriminator;
+            edge2: JSONTypeDefDiscriminator;
+            edge3: JSONTypeDefDiscriminator;
+            edge4: JSONTypeDefDiscriminator;
+        };
+        metadata: {
+            order: string[];
+        };
+    };
+    generate(settings: IGeneratorSettings, { label, labelFontSize, thickness, kerf, width, height, edge1, edge2, edge3, edge4, }: any): Surface[];
+}
+
 declare const allGenerators: GeneratorBase[];
 
 declare class DrawBuilder {
@@ -458,7 +585,8 @@ declare class DrawBuilder {
     curveTo(c1: Vec2, c2: Vec2, to: Vec2): this;
     turn(dangle: number): this;
     forward(dist: number): this;
-    close(): this;
+    forwardCurve(c1Dist: number, turn1: number, c2Dist: number, turn2: number, toDist: number): this;
+    close(): Vec2;
     build(): IDrawCommand[];
 }
 
@@ -490,48 +618,18 @@ declare class SurfaceBuilder {
 declare abstract class EdgeBase {
     abstract name(): string;
     abstract schema(): JSONTypeDef;
-    abstract thickness(length: number, invert: boolean, thickness: number, params: any): number;
-    abstract draw(sb: SurfaceBuilder, length: number, invert: boolean, thickness: number, params: any): void;
+    abstract thickness(length: number, thickness: number, params: any): number;
+    abstract draw(sb: SurfaceBuilder, length: number, thickness: number, params: any): void;
 }
 
-declare class ButtJoint extends EdgeBase {
-    name(): string;
-    schema(): {
-        properties: {
-            invert: {
-                type: "boolean";
-                metadata: {
-                    default: boolean;
-                    title: string;
-                    description: string;
-                };
-            };
-            length1: {
-                type: "float64";
-                metadata: {
-                    default: number;
-                    title: string;
-                    description: string;
-                };
-            };
-            length2: {
-                type: "float64";
-                metadata: {
-                    default: number;
-                    title: string;
-                    description: string;
-                };
-            };
-        };
-        metadata: {
-            order: string[];
-        };
-    };
-    thickness(_length: number, callerInvert: boolean, thickness: number, { length1, length2, invert: userInvert }: any): number;
-    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, length1, length2 }: any): void;
+declare abstract class JointBase extends EdgeBase {
+    abstract jointThickness(length: number, invert: boolean, thickness: number, params: any): number;
+    abstract jointDraw(sb: SurfaceBuilder, length: number, invert: boolean, thickness: number, params: any): void;
+    thickness(length: number, thickness: number, params: any): number;
+    draw(sb: SurfaceBuilder, length: number, thickness: number, params: any): void;
 }
 
-declare class BoxJoint extends EdgeBase {
+declare class BoxJoint extends JointBase {
     name(): string;
     schema(): {
         properties: {
@@ -604,11 +702,48 @@ declare class BoxJoint extends EdgeBase {
             order: string[];
         };
     };
-    thickness(_length: number, callerInvert: boolean, thickness: number, { length1, length2, invert: userInvert }: any): number;
-    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, width1, length1, width2, length2, play, cornerDistance, centerDistance, }: any): void;
+    jointThickness(_length: number, callerInvert: boolean, thickness: number, { length1, length2, invert: userInvert }: any): number;
+    jointDraw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, width1, length1, width2, length2, play, cornerDistance, centerDistance, }: any): void;
 }
 
-declare class MortiseAndTenonJoint extends EdgeBase {
+declare class ButtJoint extends JointBase {
+    name(): string;
+    schema(): {
+        properties: {
+            invert: {
+                type: "boolean";
+                metadata: {
+                    default: boolean;
+                    title: string;
+                    description: string;
+                };
+            };
+            length1: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            length2: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+        };
+        metadata: {
+            order: string[];
+        };
+    };
+    jointThickness(_length: number, callerInvert: boolean, thickness: number, { length1, length2, invert: userInvert }: any): number;
+    jointDraw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, length1, length2 }: any): void;
+}
+
+declare class MortiseAndTenonJoint extends JointBase {
     name(): string;
     schema(): {
         properties: {
@@ -684,17 +819,21 @@ declare class MortiseAndTenonJoint extends EdgeBase {
                     description: string;
                 };
             };
+            mortiseEdge: JSONTypeDefDiscriminator;
         };
         metadata: {
             order: string[];
         };
     };
-    thickness(_length: number, callerInvert: boolean, thickness: number, { tenonLength, invert: userInvert }: any): number;
-    draw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, width1, tenonLength, width2, holeDistance, play, thicknessPlay, cornerDistance, centerDistance, }: any): void;
+    jointThickness(length: number, callerInvert: boolean, thickness: number, { tenonLength, invert: userInvert, mortiseEdge }: any): number;
+    jointDraw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, width1, tenonLength, width2, holeDistance, play, thicknessPlay, cornerDistance, centerDistance, mortiseEdge, }: any): void;
 }
 
+declare function edgeListTypeDef(edges: EdgeBase[], metadata?: any, nullable?: boolean): JSONTypeDefDiscriminator;
+
 declare const allEdges: EdgeBase[];
-declare function allEdgesTypeDef(metadata?: any): JSONTypeDefDiscriminator;
+declare const allJoints: JointBase[];
+declare function allEdgesTypeDef(metadata?: any, nullable?: boolean): JSONTypeDefDiscriminator;
 
 declare abstract class DocumentBase {
     constructor(settings: IGeneratorSettings);
@@ -731,4 +870,4 @@ declare function expandPathByKerf(offset: Vec2, commands: IDrawCommand[], kerf: 
     commands: IDrawCommand[];
 };
 
-export { AlongIntersection, BoxJoint, BoxPlain, ButtJoint, DocumentBase, DocumentSVG, DrawBuilder, EdgeBase, GeneratorBase, type IDrawCommand, type IDrawCommandCurve, type IDrawCommandGeneric, type IDrawCommandLine, type IExportFile, type IGeneratorSettings, type IOffsetDrawCommands, type ITextCommand, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, KerfTester, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, SurfaceBuilder, type Vec2, allEdges, allEdgesTypeDef, allGenerators, copyVec2, eps, expandPathByKerf, exportDocument, forwardVec2, linesIntersect };
+export { AlongIntersection, BoxCardstock, BoxJoint, BoxNested, BoxPlain, ButtJoint, DocumentBase, DocumentSVG, DrawBuilder, EdgeBase, GeneratorBase, type IDrawCommand, type IDrawCommandCurve, type IDrawCommandGeneric, type IDrawCommandLine, type IExportFile, type IGeneratorSettings, type IOffsetDrawCommands, type ITextCommand, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, JointBase, KerfTester, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, SurfaceBuilder, type Vec2, allEdges, allEdgesTypeDef, allGenerators, allJoints, copyVec2, edgeListTypeDef, eps, expandPathByKerf, exportDocument, forwardVec2, linesIntersect };
