@@ -16,5 +16,6 @@ export abstract class DocumentBase {
     cutColor: string,
     scoreColor: string,
   ): void;
+  abstract addComment(comment: unknown): void;
   abstract toFile(): IExportFile;
 }

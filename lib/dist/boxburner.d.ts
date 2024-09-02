@@ -246,6 +246,7 @@ declare class Surface {
 declare abstract class DocumentBase {
     constructor(settings: IGeneratorSettings);
     abstract addSurface(offset: Vec2, surface: Surface, cutColor: string, scoreColor: string): void;
+    abstract addComment(comment: unknown): void;
     abstract toFile(): IExportFile;
 }
 
@@ -257,8 +258,10 @@ declare class DocumentSVG extends DocumentBase {
         cutColor: string;
         scoreColor: string;
     }>;
+    comments: unknown[];
     constructor(settings: IGeneratorSettings);
     addSurface(offset: Vec2, surface: Surface, cutColor: string, scoreColor: string): void;
+    addComment(comment: unknown): void;
     toFile(): {
         mimeType: string;
         extension: string;

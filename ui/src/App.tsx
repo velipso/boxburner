@@ -1617,7 +1617,7 @@ function App() {
               )
               .reduce((a, b) => ({ ...a, ...b }), {}),
             metadata: {
-              default: 'Rectangle',
+              default: 'BoxPlain',
               order: allGenerators.map((g) => g.name()),
             },
           },
@@ -1723,6 +1723,7 @@ function App() {
         colorPalette[scoreColor],
       );
     }
+    doc.addComment(params);
     const { mimeType, extension, data } = doc.toFile();
     const blob = new Blob([data], { type: mimeType });
     const url = window.URL.createObjectURL(blob);
