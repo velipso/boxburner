@@ -6,7 +6,7 @@
 //
 
 import { EdgeBase } from './EdgeBase';
-import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type Surface } from '../Surface';
 
 export class LegEdge extends EdgeBase {
   name() {
@@ -52,46 +52,42 @@ export class LegEdge extends EdgeBase {
     };
   }
 
-  thickness(_length: number, _thickness: number, { height }: any) {
-    return -height;
+  thickness(_thickness: number, { height }: any) {
+    return Math.max(0, height);
   }
 
   draw(
-    sb: SurfaceBuilder,
+    surface: Surface,
     length: number,
     thickness: number,
     { flatWidth, curveWidth, curveAmount, height }: any,
-  ): void {
-    const d = curveAmount * length;
-    let a = 90;
-    let aheight = height;
-    if (d !== 0) {
-      a = 180 - (Math.atan2(height / 2, d) * 180) / Math.PI;
-      aheight = 2 * Math.sqrt((height * height) / 4 + d * d);
+  ): Surface {
+    if (height <= 0) {
+      return surface;
     }
-    sb.border
-      .turn(-90)
-      .forward(height)
-      .turn(90)
-      .forward(flatWidth * length)
-      .forwardCurve(
-        curveWidth * length * 0.5 + d,
-        a,
-        aheight,
-        -a,
-        curveWidth * length * 0.5 + d,
-      )
-      .forward((1 - (flatWidth + curveWidth) * 2) * length)
-      .forwardCurve(
-        curveWidth * length * 0.5 + d,
-        -a,
-        aheight,
-        a,
-        curveWidth * length * 0.5 + d,
-      )
-      .forward(flatWidth * length)
-      .turn(90)
-      .forward(height)
-      .turn(-90);
+    return surface.subtractBorder(
+      surface
+        .newShape()
+        .beginPath()
+        .moveTo(flatWidth * length, 0)
+        .bezierCurveTo(
+          (flatWidth + curveAmount) * length,
+          0,
+          (flatWidth + curveWidth - curveAmount) * length,
+          height,
+          (flatWidth + curveWidth) * length,
+          height,
+        )
+        .lineTo((1 - flatWidth - curveWidth) * length, height)
+        .bezierCurveTo(
+          (1 - flatWidth - curveWidth + curveAmount) * length,
+          height,
+          (1 - flatWidth - curveAmount) * length,
+          0,
+          (1 - flatWidth) * length,
+          0,
+        )
+        .closePath(),
+    );
   }
 }

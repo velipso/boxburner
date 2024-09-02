@@ -6,7 +6,7 @@
 //
 
 import { JointBase } from './JointBase';
-import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type Surface } from '../Surface';
 
 export class ButtJoint extends JointBase {
   name() {
@@ -46,32 +46,21 @@ export class ButtJoint extends JointBase {
   }
 
   jointThickness(
-    _length: number,
     callerInvert: boolean,
     thickness: number,
     { length1, length2, invert: userInvert }: any,
   ) {
     const invert = callerInvert !== userInvert;
-    return (invert ? -length2 : length1) * thickness;
+    return (invert ? length2 : length1) * thickness;
   }
 
   jointDraw(
-    sb: SurfaceBuilder,
-    length: number,
-    callerInvert: boolean,
-    thickness: number,
-    { invert: userInvert, length1, length2 }: any,
-  ): void {
-    const invert = callerInvert !== userInvert;
-    const t = (invert ? length2 : length1) * thickness;
-    const a = invert ? -90 : 90;
-    sb.border
-      .turn(-a)
-      .forward(t)
-      .turn(a)
-      .forward(length)
-      .turn(a)
-      .forward(t)
-      .turn(-a);
+    surface: Surface,
+    _length: number,
+    _callerInvert: boolean,
+    _thickness: number,
+    _params: any,
+  ): Surface {
+    return surface;
   }
 }

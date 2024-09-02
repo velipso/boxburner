@@ -1,23 +1,6 @@
-type Vec2 = [number, number];
-interface IDrawCommandGeneric<K extends string> {
-    kind: K;
-    to: Vec2;
-}
-interface IDrawCommandLine extends IDrawCommandGeneric<'L'> {
-}
-interface IDrawCommandCurve extends IDrawCommandGeneric<'C'> {
-    c1: Vec2;
-    c2: Vec2;
-}
-type IDrawCommand = IDrawCommandLine | IDrawCommandCurve;
-interface ITextCommand {
-    pt: Vec2;
-    text: string;
-}
-interface IOffsetDrawCommands {
-    offset: Vec2;
-    commands: IDrawCommand[];
-}
+import { Vec2, PolyBool, GeometryEpsilon, Shape } from '@velipso/polybool';
+export { Segment, Shape, Vec2, Vec6 } from '@velipso/polybool';
+
 interface JSONTypeDefCommon {
     nullable?: true;
     metadata?: any;
@@ -211,39 +194,79 @@ interface IExportFile {
     extension: string;
     data: Uint8Array;
 }
-declare enum AlongIntersection {
-    BeforeStart = 0,
-    EqualStart = 1,
-    BetweenStartAndEnd = 2,
-    EqualEnd = 3,
-    AfterEnd = 4
-}
 interface IntersectionResult {
     p: Vec2;
-    alongA: AlongIntersection;
-    alongB: AlongIntersection;
+    alongA: number;
+    alongB: number;
 }
 
-declare class Surface {
-    defaultThickness: number;
-    defaultKerf: number;
-    thicknessValue: number | null;
-    kerfValue: number | null;
-    border: IDrawCommand[];
-    holes: IOffsetDrawCommands[];
-    cuts: IOffsetDrawCommands[];
-    scores: IOffsetDrawCommands[];
-    text: ITextCommand[];
-    constructor({ defaultThickness, defaultKerf, }: {
-        defaultThickness: number;
-        defaultKerf: number;
-    }, border: IDrawCommand[], holes?: IOffsetDrawCommands[], cuts?: IOffsetDrawCommands[], scores?: IOffsetDrawCommands[], text?: ITextCommand[]);
-    setThickness(thickness: number | null): void;
-    setKerf(kerf: number | null): void;
-    thickness(): number;
-    kerf(): number;
-    borderBoundingBox(): [Vec2, Vec2];
+declare class GeometryExt extends GeometryEpsilon {
+    atan2Deg(dy: number, dx: number): number;
+    sinDeg(degrees: number): number;
+    cosDeg(degrees: number): number;
+    linesIntersect(a1x: number, a1y: number, a2x: number, a2y: number, b1x: number, b1y: number, b2x: number, b2y: number): IntersectionResult | null;
 }
+declare const geo: GeometryExt;
+declare const polybool: PolyBool;
+
+declare function ApplyKerf(shape: Shape, kerf: number): Shape;
+
+declare class Surface {
+    readonly thickness: number;
+    readonly kerf: number;
+    readonly border: Shape;
+    readonly cuts: Shape;
+    readonly scores: Shape;
+    home: {
+        origin: Vec2;
+        angle: number;
+    };
+    constructor(thickness: number, kerf: number, border: Shape, cuts: Shape, scores: Shape);
+    replace(opts: Partial<{
+        thickness: number;
+        kerf: number;
+        border: Shape;
+        cuts: Shape;
+        scores: Shape;
+    }>): Surface;
+    copy(): Surface;
+    private static combine;
+    static union(a: Surface, b: Surface): Surface;
+    static intersect(a: Surface, b: Surface): Surface;
+    static subtract(a: Surface, b: Surface): Surface;
+    static xor(a: Surface, b: Surface): Surface;
+    unionBorder(border: Shape): Surface;
+    subtractBorder(border: Shape): Surface;
+    setHome(origin: Vec2, angle: number): this;
+    newShape(): Shape;
+    boundingBox(): [Vec2, Vec2];
+    applyKerf(): Surface;
+}
+
+declare abstract class DocumentBase {
+    constructor(settings: IGeneratorSettings);
+    abstract addSurface(offset: Vec2, surface: Surface, cutColor: string, scoreColor: string): void;
+    abstract toFile(): IExportFile;
+}
+
+declare class DocumentSVG extends DocumentBase {
+    settings: IGeneratorSettings;
+    surfaces: Array<{
+        offset: Vec2;
+        surface: Surface;
+        cutColor: string;
+        scoreColor: string;
+    }>;
+    constructor(settings: IGeneratorSettings);
+    addSurface(offset: Vec2, surface: Surface, cutColor: string, scoreColor: string): void;
+    toFile(): {
+        mimeType: string;
+        extension: string;
+        data: Uint8Array;
+    };
+}
+
+declare function exportDocument(settings: IGeneratorSettings): DocumentBase;
 
 declare abstract class GeneratorBase {
     abstract name(): string;
@@ -251,68 +274,7 @@ declare abstract class GeneratorBase {
     abstract generate(settings: IGeneratorSettings, params: any): Surface[];
 }
 
-declare class BoxCardstock extends GeneratorBase {
-    name(): string;
-    schema(): {
-        properties: {
-            thickness: {
-                type: "float64";
-                nullable: true;
-                metadata: {
-                    default: null;
-                    defaultNotNull: number;
-                    nullHint: string;
-                    title: string;
-                };
-            };
-            kerf: {
-                type: "float64";
-                nullable: true;
-                metadata: {
-                    default: null;
-                    defaultNotNull: number;
-                    nullHint: string;
-                    title: string;
-                    description: string;
-                };
-            };
-            width: {
-                type: "float64";
-                metadata: {
-                    default: number;
-                    title: string;
-                };
-            };
-            depth: {
-                type: "float64";
-                metadata: {
-                    default: number;
-                    title: string;
-                };
-            };
-            height: {
-                type: "float64";
-                metadata: {
-                    default: number;
-                    title: string;
-                };
-            };
-            foot: {
-                type: "float64";
-                metadata: {
-                    default: number;
-                    title: string;
-                };
-            };
-        };
-        metadata: {
-            order: string[];
-        };
-    };
-    generate(settings: IGeneratorSettings, { thickness, kerf, width, depth, height, foot }: any): Surface[];
-}
-
-declare class BoxNested extends GeneratorBase {
+declare class BoxPlain extends GeneratorBase {
     name(): string;
     schema(): {
         properties: {
@@ -376,7 +338,7 @@ declare class BoxNested extends GeneratorBase {
     generate(settings: IGeneratorSettings, { labels, width, depth, height, holeDistance, play, thicknessPlay }: any): Surface[];
 }
 
-declare class BoxPlain extends GeneratorBase {
+declare class BoxNested extends GeneratorBase {
     name(): string;
     schema(): {
         properties: {
@@ -575,60 +537,65 @@ declare class Rectangle extends GeneratorBase {
 
 declare const allGenerators: GeneratorBase[];
 
-declare class DrawBuilder {
-    commands: IDrawCommand[];
-    angle: number;
-    cursor(): Vec2;
-    lineTo(to: Vec2): this;
-    lineToRelative(delta: Vec2): this;
-    quadCurveTo(c1: Vec2, to: Vec2): this;
-    curveTo(c1: Vec2, c2: Vec2, to: Vec2): this;
-    turn(dangle: number): this;
-    forward(dist: number): this;
-    forwardCurve(c1Dist: number, turn1: number, c2Dist: number, turn2: number, toDist: number): this;
-    close(): Vec2;
-    build(): IDrawCommand[];
-}
-
-declare class SurfaceBuilder {
-    border: DrawBuilder;
-    holes: Array<{
-        offset: Vec2;
-        db: DrawBuilder;
-    }>;
-    cuts: Array<{
-        offset: Vec2;
-        db: DrawBuilder;
-    }>;
-    scores: Array<{
-        offset: Vec2;
-        db: DrawBuilder;
-    }>;
-    text: ITextCommand[];
-    hole(offset: Vec2, angle?: number): DrawBuilder;
-    cut(offset: Vec2, angle?: number): DrawBuilder;
-    score(offset: Vec2, angle?: number): DrawBuilder;
-    scoreChar(offset: Vec2, width: number, height: number, char: string): this;
-    build(defaultValues: {
-        defaultThickness: number;
-        defaultKerf: number;
-    }): Surface;
-}
-
 declare abstract class EdgeBase {
     abstract name(): string;
     abstract schema(): JSONTypeDef;
-    abstract thickness(length: number, thickness: number, params: any): number;
-    abstract draw(sb: SurfaceBuilder, length: number, thickness: number, params: any): void;
+    abstract thickness(thickness: number, params: any): number;
+    abstract draw(surface: Surface, length: number, thickness: number, params: any): Surface;
 }
 
 declare abstract class JointBase extends EdgeBase {
-    abstract jointThickness(length: number, invert: boolean, thickness: number, params: any): number;
-    abstract jointDraw(sb: SurfaceBuilder, length: number, invert: boolean, thickness: number, params: any): void;
-    thickness(length: number, thickness: number, params: any): number;
-    draw(sb: SurfaceBuilder, length: number, thickness: number, params: any): void;
+    abstract jointThickness(invert: boolean, thickness: number, params: any): number;
+    abstract jointDraw(surface: Surface, length: number, invert: boolean, thickness: number, params: any): Surface;
+    thickness(thickness: number, params: any): number;
+    draw(surface: Surface, length: number, thickness: number, params: any): Surface;
 }
 
+declare class ButtJoint extends JointBase {
+    name(): string;
+    schema(): {
+        properties: {
+            invert: {
+                type: "boolean";
+                metadata: {
+                    default: boolean;
+                    title: string;
+                    description: string;
+                };
+            };
+            length1: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            length2: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+        };
+        metadata: {
+            order: string[];
+        };
+    };
+    jointThickness(callerInvert: boolean, thickness: number, { length1, length2, invert: userInvert }: any): number;
+    jointDraw(surface: Surface, _length: number, _callerInvert: boolean, _thickness: number, _params: any): Surface;
+}
+
+declare function boxJointFingerSpacer({ length, width1, width2, cornerDistance1, cornerDistance2, centerDistance, }: {
+    length: number;
+    width1: number;
+    width2: number;
+    cornerDistance1: number;
+    cornerDistance2: number;
+    centerDistance: number;
+}, forward: (x: number, d: number, finger: boolean) => void): void;
 declare class BoxJoint extends JointBase {
     name(): string;
     schema(): {
@@ -689,6 +656,26 @@ declare class BoxJoint extends JointBase {
                     description: string;
                 };
             };
+            cornerDistance1Delta: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            cornerDistance2Delta: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    title: string;
+                    description: string;
+                };
+            };
             centerDistance: {
                 type: "float64";
                 metadata: {
@@ -702,23 +689,15 @@ declare class BoxJoint extends JointBase {
             order: string[];
         };
     };
-    jointThickness(_length: number, callerInvert: boolean, thickness: number, { length1, length2, invert: userInvert }: any): number;
-    jointDraw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, width1, length1, width2, length2, play, cornerDistance, centerDistance, }: any): void;
+    jointThickness(callerInvert: boolean, thickness: number, { length1, length2, invert: userInvert }: any): number;
+    jointDraw(surface: Surface, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, width1, length1, width2, length2, play, cornerDistance, cornerDistance1Delta, cornerDistance2Delta, centerDistance, }: any): Surface;
 }
 
-declare class ButtJoint extends JointBase {
+declare class LegEdge extends EdgeBase {
     name(): string;
     schema(): {
         properties: {
-            invert: {
-                type: "boolean";
-                metadata: {
-                    default: boolean;
-                    title: string;
-                    description: string;
-                };
-            };
-            length1: {
+            flatWidth: {
                 type: "float64";
                 metadata: {
                     default: number;
@@ -726,12 +705,27 @@ declare class ButtJoint extends JointBase {
                     description: string;
                 };
             };
-            length2: {
+            curveWidth: {
                 type: "float64";
                 metadata: {
                     default: number;
                     title: string;
                     description: string;
+                };
+            };
+            curveAmount: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            height: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
                 };
             };
         };
@@ -739,8 +733,8 @@ declare class ButtJoint extends JointBase {
             order: string[];
         };
     };
-    jointThickness(_length: number, callerInvert: boolean, thickness: number, { length1, length2, invert: userInvert }: any): number;
-    jointDraw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, length1, length2 }: any): void;
+    thickness(_thickness: number, { height }: any): number;
+    draw(surface: Surface, length: number, thickness: number, { flatWidth, curveWidth, curveAmount, height }: any): Surface;
 }
 
 declare class MortiseAndTenonJoint extends JointBase {
@@ -811,6 +805,26 @@ declare class MortiseAndTenonJoint extends JointBase {
                     description: string;
                 };
             };
+            cornerDistance1Delta: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    title: string;
+                    description: string;
+                };
+            };
+            cornerDistance2Delta: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    title: string;
+                    description: string;
+                };
+            };
             centerDistance: {
                 type: "float64";
                 metadata: {
@@ -825,8 +839,8 @@ declare class MortiseAndTenonJoint extends JointBase {
             order: string[];
         };
     };
-    jointThickness(length: number, callerInvert: boolean, thickness: number, { tenonLength, invert: userInvert, mortiseEdge }: any): number;
-    jointDraw(sb: SurfaceBuilder, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, width1, tenonLength, width2, holeDistance, play, thicknessPlay, cornerDistance, centerDistance, mortiseEdge, }: any): void;
+    jointThickness(callerInvert: boolean, thickness: number, { tenonLength, invert: userInvert, mortiseEdge }: any): number;
+    jointDraw(surface: Surface, length: number, callerInvert: boolean, thickness: number, { invert: userInvert, width1, tenonLength, width2, holeDistance, play, thicknessPlay, cornerDistance, cornerDistance1Delta, cornerDistance2Delta, centerDistance, mortiseEdge, }: any): Surface;
 }
 
 declare function edgeListTypeDef(edges: EdgeBase[], metadata?: any, nullable?: boolean): JSONTypeDefDiscriminator;
@@ -835,39 +849,4 @@ declare const allEdges: EdgeBase[];
 declare const allJoints: JointBase[];
 declare function allEdgesTypeDef(metadata?: any, nullable?: boolean): JSONTypeDefDiscriminator;
 
-declare abstract class DocumentBase {
-    constructor(settings: IGeneratorSettings);
-    abstract addSurface(offset: Vec2, surface: Surface, cutColor: string, holeColor: string, scoreColor: string): void;
-    abstract toFile(): IExportFile;
-}
-
-declare class DocumentSVG extends DocumentBase {
-    settings: IGeneratorSettings;
-    surfaces: Array<{
-        offset: Vec2;
-        surface: Surface;
-        cutColor: string;
-        holeColor: string;
-        scoreColor: string;
-    }>;
-    constructor(settings: IGeneratorSettings);
-    addSurface(offset: Vec2, surface: Surface, cutColor: string, holeColor: string, scoreColor: string): void;
-    toFile(): {
-        mimeType: string;
-        extension: string;
-        data: Uint8Array;
-    };
-}
-
-declare function exportDocument(settings: IGeneratorSettings): DocumentBase;
-
-declare const eps = 1e-7;
-declare function copyVec2(p: Vec2): Vec2;
-declare function forwardVec2(p: Vec2, angle: number, dist: number): Vec2;
-declare function linesIntersect(aStart: Vec2, aEnd: Vec2, bStart: Vec2, bEnd: Vec2): IntersectionResult | null;
-declare function expandPathByKerf(offset: Vec2, commands: IDrawCommand[], kerf: number): {
-    offset: Vec2;
-    commands: IDrawCommand[];
-};
-
-export { AlongIntersection, BoxCardstock, BoxJoint, BoxNested, BoxPlain, ButtJoint, DocumentBase, DocumentSVG, DrawBuilder, EdgeBase, GeneratorBase, type IDrawCommand, type IDrawCommandCurve, type IDrawCommandGeneric, type IDrawCommandLine, type IExportFile, type IGeneratorSettings, type IOffsetDrawCommands, type ITextCommand, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, JointBase, KerfTester, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, SurfaceBuilder, type Vec2, allEdges, allEdgesTypeDef, allGenerators, allJoints, copyVec2, edgeListTypeDef, eps, expandPathByKerf, exportDocument, forwardVec2, linesIntersect };
+export { ApplyKerf, BoxJoint, BoxNested, BoxPlain, ButtJoint, DocumentBase, DocumentSVG, EdgeBase, GeneratorBase, type IExportFile, type IGeneratorSettings, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, JointBase, KerfTester, LegEdge, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, allEdges, allEdgesTypeDef, allGenerators, allJoints, boxJointFingerSpacer, edgeListTypeDef, exportDocument, geo, polybool };

@@ -5,31 +5,8 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-export type Vec2 = [number, number];
-
-export interface IDrawCommandGeneric<K extends string> {
-  kind: K;
-  to: Vec2;
-}
-
-export interface IDrawCommandLine extends IDrawCommandGeneric<'L'> {}
-
-export interface IDrawCommandCurve extends IDrawCommandGeneric<'C'> {
-  c1: Vec2;
-  c2: Vec2;
-}
-
-export type IDrawCommand = IDrawCommandLine | IDrawCommandCurve;
-
-export interface ITextCommand {
-  pt: Vec2;
-  text: string;
-}
-
-export interface IOffsetDrawCommands {
-  offset: Vec2;
-  commands: IDrawCommand[];
-}
+import { type Vec2, type Vec6 } from '@velipso/polybool';
+export type { Vec2, Vec6 };
 
 export interface JSONTypeDefCommon {
   nullable?: true;
@@ -307,16 +284,8 @@ export interface IExportFile {
   data: Uint8Array;
 }
 
-export enum AlongIntersection {
-  BeforeStart,
-  EqualStart,
-  BetweenStartAndEnd,
-  EqualEnd,
-  AfterEnd,
-}
-
 export interface IntersectionResult {
   p: Vec2; // intersection point
-  alongA: AlongIntersection; // where this point is along the A line
-  alongB: AlongIntersection; // where this point is along the B line
+  alongA: number; // where this point is along the A line
+  alongB: number; // where this point is along the B line
 }

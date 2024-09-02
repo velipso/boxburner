@@ -6,7 +6,59 @@
 //
 
 import { JointBase } from './JointBase';
-import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type Surface } from '../Surface';
+
+export function boxJointFingerSpacer(
+  {
+    length,
+    width1,
+    width2,
+    cornerDistance1,
+    cornerDistance2,
+    centerDistance,
+  }: {
+    length: number;
+    width1: number;
+    width2: number;
+    cornerDistance1: number;
+    cornerDistance2: number;
+    centerDistance: number;
+  },
+  forward: (x: number, d: number, finger: boolean) => void,
+) {
+  let x = 0;
+  const fwd = (d: number, finger: boolean) => {
+    forward(x, d, finger);
+    x += d;
+  };
+  const fingers = (count: number) => {
+    if (count > 10000) {
+      throw new Error('Too many fingers');
+    }
+    fwd(width1, true);
+    for (let i = 0; i < count; i++) {
+      fwd(width2, false);
+      fwd(width1, true);
+    }
+  };
+  const left = length - cornerDistance1 - cornerDistance2;
+  if (centerDistance > 0) {
+    const half = (left - centerDistance) / 2;
+    const fingerCount = Math.floor((half - width1) / (width1 + width2));
+    const fingerLen = width1 + fingerCount * (width1 + width2);
+    fwd(cornerDistance1 + (half - fingerLen) / 2, false);
+    fingers(fingerCount);
+    fwd(centerDistance + half - fingerLen, false);
+    fingers(fingerCount);
+    fwd(cornerDistance2 + (half - fingerLen) / 2, false);
+  } else {
+    const fingerCount = Math.floor((left - width1) / (width1 + width2));
+    const fingerLen = width1 + fingerCount * (width1 + width2);
+    fwd(cornerDistance1 + (left - fingerLen) / 2, false);
+    fingers(fingerCount);
+    fwd(cornerDistance2 + (left - fingerLen) / 2, false);
+  }
+}
 
 export class BoxJoint extends JointBase {
   name() {
@@ -73,6 +125,26 @@ export class BoxJoint extends JointBase {
               'Reserved space near corners to exclude fingers (units)',
           },
         },
+        cornerDistance1Delta: {
+          type: 'float64' as const,
+          nullable: true as const,
+          metadata: {
+            default: null,
+            defaultNotNull: 0,
+            title: 'Corner Distance 1 Delta',
+            description: 'Additional corner distance',
+          },
+        },
+        cornerDistance2Delta: {
+          type: 'float64' as const,
+          nullable: true as const,
+          metadata: {
+            default: null,
+            defaultNotNull: 0,
+            title: 'Corner Distance 2 Delta',
+            description: 'Additional corner distance',
+          },
+        },
         centerDistance: {
           type: 'float64' as const,
           metadata: {
@@ -99,17 +171,16 @@ export class BoxJoint extends JointBase {
   }
 
   jointThickness(
-    _length: number,
     callerInvert: boolean,
     thickness: number,
     { length1, length2, invert: userInvert }: any,
   ) {
     const invert = callerInvert !== userInvert;
-    return (invert ? -length2 : length1) * thickness;
+    return (invert ? length2 : length1) * thickness;
   }
 
   jointDraw(
-    sb: SurfaceBuilder,
+    surface: Surface,
     length: number,
     callerInvert: boolean,
     thickness: number,
@@ -121,52 +192,34 @@ export class BoxJoint extends JointBase {
       length2,
       play,
       cornerDistance,
+      cornerDistance1Delta,
+      cornerDistance2Delta,
       centerDistance,
     }: any,
-  ): void {
-    const db = sb.border;
+  ): Surface {
     const invert = callerInvert !== userInvert;
-    const t = (invert ? length2 : length1) * thickness;
-    const iplay = invert ? -play : play;
-    const a = invert ? -90 : 90;
-    const finger = () =>
-      db
-        .forward(iplay / 2)
-        .turn(-a)
-        .forward(t)
-        .turn(a)
-        .forward(width1 - iplay)
-        .turn(a)
-        .forward(t)
-        .turn(-a)
-        .forward(iplay / 2);
-    const space = () => db.forward(width2);
-    const fingers = (count: number) => {
-      if (count > 10000) {
-        throw new Error('Too many fingers');
-      }
-      finger();
-      for (let i = 0; i < count; i++) {
-        space();
-        finger();
-      }
-    };
-    const left = length - cornerDistance * 2;
-    if (centerDistance > 0) {
-      const half = (left - centerDistance) / 2;
-      const fingerCount = Math.floor((half - width1) / (width1 + width2));
-      const fingerLen = width1 + fingerCount * (width1 + width2);
-      db.forward(cornerDistance + (half - fingerLen) / 2);
-      fingers(fingerCount);
-      db.forward(centerDistance + half - fingerLen);
-      fingers(fingerCount);
-      db.forward(cornerDistance + (half - fingerLen) / 2);
-    } else {
-      const fingerCount = Math.floor((left - width1) / (width1 + width2));
-      const fingerLen = width1 + fingerCount * (width1 + width2);
-      db.forward(cornerDistance + (left - fingerLen) / 2);
-      fingers(fingerCount);
-      db.forward(cornerDistance + (left - fingerLen) / 2);
-    }
+    const th = (invert ? length2 : length1) * thickness;
+    boxJointFingerSpacer(
+      {
+        length,
+        width1,
+        width2,
+        cornerDistance1: cornerDistance + (cornerDistance1Delta ?? 0),
+        cornerDistance2: cornerDistance + (cornerDistance2Delta ?? 0),
+        centerDistance,
+      },
+      (x: number, d: number, finger: boolean) => {
+        if (finger === invert) {
+          surface = surface.subtractBorder(
+            surface
+              .newShape()
+              .beginPath()
+              .rect(x - play / 2, 0, d + play, th)
+              .closePath(),
+          );
+        }
+      },
+    );
+    return surface;
   }
 }

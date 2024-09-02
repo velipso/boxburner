@@ -6,9 +6,11 @@
 //
 
 import { GeneratorBase } from './GeneratorBase';
-import { SurfaceBuilder } from '../SurfaceBuilder';
+import { Surface } from '../Surface';
 import { type IGeneratorSettings } from '../types';
 import { allEdges, allEdgesTypeDef } from '../edges';
+import { polybool } from '../Geometry';
+import { ApplyText } from '../ApplyText';
 
 export class Rectangle extends GeneratorBase {
   name() {
@@ -63,14 +65,14 @@ export class Rectangle extends GeneratorBase {
           type: 'float64' as const,
           metadata: {
             default: 100,
-            title: 'Outer Width (units)',
+            title: 'Inner Width (units)',
           },
         },
         height: {
           type: 'float64' as const,
           metadata: {
             default: 100,
-            title: 'Outer Height (units)',
+            title: 'Inner Height (units)',
           },
         },
         edge1: allEdgesTypeDef({ title: 'Top' }),
@@ -110,7 +112,10 @@ export class Rectangle extends GeneratorBase {
       edge4,
     }: any,
   ) {
-    const sb = new SurfaceBuilder();
+    const th =
+      typeof thickness === 'number' ? thickness : settings.defaultThickness;
+    const kr = typeof kerf === 'number' ? kerf : settings.defaultKerf;
+
     const e1 = allEdges.find((e) => e.name() === edge1.kind);
     if (!e1) {
       throw new Error('Bad top edge');
@@ -128,99 +133,49 @@ export class Rectangle extends GeneratorBase {
       throw new Error('Bad left edge');
     }
 
-    const th =
-      typeof thickness === 'number' ? thickness : settings.defaultThickness;
-    const e1t = e1.thickness(width, th, edge1.params);
-    const e2t = e2.thickness(height, th, edge2.params);
-    const e3t = e3.thickness(width, th, edge3.params);
-    const e4t = e4.thickness(height, th, edge4.params);
+    const e1t = e1.thickness(th, edge1.params);
+    const e2t = e2.thickness(th, edge2.params);
+    const e3t = e3.thickness(th, edge3.params);
+    const e4t = e4.thickness(th, edge4.params);
 
-    width -= Math.max(0, e2t) + Math.max(0, e4t);
-    height -= Math.max(0, e1t) + Math.max(0, e3t);
+    const w = width + e2t + e4t;
+    const h = height + e1t + e3t;
 
-    // top edge
-    if (e4t < 0) {
-      sb.border.forward(-e4t);
-    }
-    e1.draw(sb, width, th, edge1.params);
-    if (e2t < 0) {
-      sb.border.forward(-e2t);
-    }
+    const border = polybool
+      .shape()
+      .beginPath()
+      .moveTo(0, 0)
+      .lineTo(w, 0)
+      .lineTo(w, h)
+      .lineTo(0, h)
+      .closePath();
+    const cuts = polybool.shape();
+    const scores = label
+      ? ApplyText(label, e4t, e1t, width, height, labelFontSize)
+      : polybool.shape();
+    let surface = new Surface(th, kr, border, cuts, scores);
 
-    sb.border.turn(90);
+    surface = e1.draw(surface.setHome([0, 0], 0), w, th, {
+      ...edge1.params,
+      cornerDistance1Delta: e4t,
+      cornerDistance2Delta: e2t,
+    });
+    surface = e2.draw(surface.setHome([w, 0], 90), h, th, {
+      ...edge2.params,
+      cornerDistance1Delta: e1t,
+      cornerDistance2Delta: e3t,
+    });
+    surface = e3.draw(surface.setHome([w, h], 180), w, th, {
+      ...edge3.params,
+      cornerDistance1Delta: e2t,
+      cornerDistance2Delta: e4t,
+    });
+    surface = e4.draw(surface.setHome([0, h], 270), h, th, {
+      ...edge4.params,
+      cornerDistance1Delta: e3t,
+      cornerDistance2Delta: e1t,
+    });
 
-    // right edge
-    if (e1t < 0) {
-      sb.border.forward(-e1t);
-    }
-    e2.draw(sb, height, th, edge2.params);
-    if (e3t < 0) {
-      sb.border.forward(-e3t);
-    }
-
-    sb.border.turn(90);
-
-    // bottom edge
-    if (e2t < 0) {
-      sb.border.forward(-e2t);
-    }
-    e3.draw(sb, width, th, edge3.params);
-    if (e4t < 0) {
-      sb.border.forward(-e4t);
-    }
-
-    sb.border.turn(90);
-
-    // left edge
-    if (e3t < 0) {
-      sb.border.forward(-e3t);
-    }
-    e4.draw(sb, height, th, edge4.params);
-    if (e1t < 0) {
-      sb.border.forward(-e1t);
-    }
-
-    sb.border.turn(90);
-
-    if (label) {
-      const lines = label.trim().split('\n');
-      const maxChars = lines.reduce(
-        (a: number, b: string) => Math.max(a, b.length),
-        0,
-      );
-      let chh = 0;
-      if (typeof labelFontSize === 'number') {
-        chh = labelFontSize;
-      } else {
-        // auto font size
-        chh = Math.min(
-          ((width - 5 - Math.abs(e2t) - Math.abs(e4t)) / maxChars) * 2,
-          (height - 5 - Math.abs(e1t) - Math.abs(e3t)) / lines.length,
-        );
-      }
-      const chw = chh / 2;
-      const sx = (width - chw * maxChars) / 2;
-      const sy = (height - chh * lines.length) / 2;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        for (let j = 0; j < line.length; j++) {
-          sb.scoreChar(
-            [sx + chw * j + chw * 0.15, sy + chh * i + chh * 0.15],
-            chw * 0.7,
-            chh * 0.7,
-            line.charAt(j),
-          );
-        }
-      }
-    }
-
-    const surface = sb.build(settings);
-    if (typeof thickness === 'number') {
-      surface.setThickness(thickness);
-    }
-    if (typeof kerf === 'number') {
-      surface.setKerf(kerf);
-    }
     return [surface];
   }
 }

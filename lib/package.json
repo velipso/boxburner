@@ -34,6 +34,7 @@
     "rollup-plugin-dts": "^6.1.1"
   },
   "dependencies": {
+    "@velipso/polybool": "^2.0.11",
     "tslib": "^2.6.3"
   }
 }

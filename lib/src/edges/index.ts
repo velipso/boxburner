@@ -7,29 +7,30 @@
 
 import { type EdgeBase } from './EdgeBase';
 import { type JointBase } from './JointBase';
-import { BoxJoint } from './BoxJoint';
 import { ButtJoint } from './ButtJoint';
+import { BoxJoint } from './BoxJoint';
 import { LegEdge } from './LegEdge';
 import { MortiseAndTenonJoint } from './MortiseAndTenonJoint';
 import { type JSONTypeDefDiscriminator } from '../types';
 import { edgeListTypeDef } from './typedef';
 export * from './EdgeBase';
 export * from './JointBase';
-export * from './BoxJoint';
 export * from './ButtJoint';
+export * from './BoxJoint';
+export * from './LegEdge';
 export * from './MortiseAndTenonJoint';
 export * from './typedef';
 
 export const allEdges: EdgeBase[] = [
-  new BoxJoint(),
   new ButtJoint(),
+  new BoxJoint(),
   new LegEdge(),
   new MortiseAndTenonJoint(),
 ];
 
 export const allJoints: JointBase[] = [
-  new BoxJoint(),
   new ButtJoint(),
+  new BoxJoint(),
   new MortiseAndTenonJoint(),
 ];
 

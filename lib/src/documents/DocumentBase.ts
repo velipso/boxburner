@@ -14,7 +14,6 @@ export abstract class DocumentBase {
     offset: Vec2,
     surface: Surface,
     cutColor: string,
-    holeColor: string,
     scoreColor: string,
   ): void;
   abstract toFile(): IExportFile;

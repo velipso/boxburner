@@ -11,7 +11,7 @@ import { Rectangle } from './Rectangle';
 
 export class BoxNested extends GeneratorBase {
   name() {
-    return 'BoxNested (WIP)';
+    return 'BoxNested';
   }
 
   schema() {
@@ -28,21 +28,21 @@ export class BoxNested extends GeneratorBase {
           type: 'float64' as const,
           metadata: {
             default: 100,
-            title: 'Outer Width (units)',
+            title: 'Inner Width (units)',
           },
         },
         depth: {
           type: 'float64' as const,
           metadata: {
             default: 100,
-            title: 'Outer Depth (units)',
+            title: 'Inner Depth (units)',
           },
         },
         height: {
           type: 'float64' as const,
           metadata: {
             default: 100,
-            title: 'Outer Height (units)',
+            title: 'Inner Height (units)',
           },
         },
         holeDistance: {

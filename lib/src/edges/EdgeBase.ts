@@ -5,17 +5,17 @@
 // SPDX-License-Identifier: 0BSD
 //
 
-import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type Surface } from '../Surface';
 import { type JSONTypeDef } from '../types';
 
 export abstract class EdgeBase {
   abstract name(): string;
   abstract schema(): JSONTypeDef;
-  abstract thickness(length: number, thickness: number, params: any): number;
+  abstract thickness(thickness: number, params: any): number;
   abstract draw(
-    sb: SurfaceBuilder,
+    surface: Surface,
     length: number,
     thickness: number,
     params: any,
-  ): void;
+  ): Surface;
 }

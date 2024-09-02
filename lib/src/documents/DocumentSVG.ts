@@ -7,12 +7,8 @@
 
 import { DocumentBase } from './DocumentBase';
 import { type Surface } from '../Surface';
-import {
-  type Vec2,
-  type IGeneratorSettings,
-  type IDrawCommand,
-} from '../types';
-import { expandPathByKerf } from '../util';
+import { type Vec2, type IGeneratorSettings } from '../types';
+import { type Shape } from '../Geometry';
 
 export class DocumentSVG extends DocumentBase {
   settings: IGeneratorSettings;
@@ -20,7 +16,6 @@ export class DocumentSVG extends DocumentBase {
     offset: Vec2;
     surface: Surface;
     cutColor: string;
-    holeColor: string;
     scoreColor: string;
   }> = [];
 
@@ -33,130 +28,102 @@ export class DocumentSVG extends DocumentBase {
     offset: Vec2,
     surface: Surface,
     cutColor: string,
-    holeColor: string,
     scoreColor: string,
   ) {
     this.surfaces.push({
       offset,
-      surface,
+      surface: surface.applyKerf(),
       cutColor,
-      holeColor,
       scoreColor,
     });
   }
 
   toFile() {
-    const { units } = this.settings;
-    const border: [Vec2, Vec2] = [
-      [0, 0],
-      [0, 0],
-    ];
-    for (const { offset, surface } of this.surfaces) {
-      const bb = surface.borderBoundingBox();
-      const kerf = surface.kerf();
-      border[0][0] = Math.min(border[0][0], offset[0] + bb[0][0] - kerf - 10);
-      border[0][1] = Math.min(border[0][1], offset[1] + bb[0][1] - kerf - 10);
-      border[1][0] = Math.max(border[1][0], offset[0] + bb[1][0] + kerf + 10);
-      border[1][1] = Math.max(border[1][1], offset[1] + bb[1][1] + kerf + 10);
-    }
+    const num = (n: number) => `${Math.round(n * 1000) / 1000}`;
 
     const data: string[] = [];
-    const num = (n: number) => `${Math.round(n * 1000) / 1000}`;
-    let gid = 0;
-    const outputGroupOpen = () => {
-      data.push(
-        `<g id="p-${gid++}" style="fill:none;stroke-linecap:round;stroke-linejoin:round;">`,
-      );
-    };
-    const outputGroupClose = () => {
-      data.push(`</g>`);
-    };
-    const outputPath = (
-      kerf: number,
-      offset: Vec2,
-      commands: IDrawCommand[],
-      closed: boolean,
-      color: string,
-    ) => {
-      if (closed && kerf > 0) {
-        ({ offset, commands } = expandPathByKerf(offset, commands, kerf));
-      }
-      const d: string[] = [`M${num(offset[0])} ${num(offset[1])}`];
-      for (const cmd of commands) {
-        switch (cmd.kind) {
-          case 'L':
-            d.push(
-              `L${num(offset[0] + cmd.to[0])} ${num(offset[1] + cmd.to[1])}`,
-            );
-            break;
-          case 'C':
-            d.push(
-              `C${num(offset[0] + cmd.c1[0])} ${num(offset[1] + cmd.c1[1])}`,
-              ` ${num(offset[0] + cmd.c2[0])} ${num(offset[1] + cmd.c2[1])}`,
-              ` ${num(offset[0] + cmd.to[0])} ${num(offset[1] + cmd.to[1])}`,
-            );
-            break;
-        }
-      }
-      if (closed) {
-        d.push('Z');
-      }
-      data.push(
-        `<path stroke="${color}" stroke-width="${kerf <= 0 ? 0.1 : kerf}" d="${d.join('')}" />`,
-      );
-    };
+    let originX = 0;
+    let originY = 0;
+    let width = 100;
+    let height = 100;
 
-    for (const { offset, surface, cutColor, holeColor, scoreColor } of this
-      .surfaces) {
-      const kerf = surface.kerf();
-      if (surface.scores.length > 0 || surface.holes.length > 0) {
-        outputGroupOpen();
+    if (this.surfaces.length > 0) {
+      const border: [Vec2, Vec2] = [
+        [Infinity, Infinity],
+        [-Infinity, -Infinity],
+      ];
+      for (const { offset, surface } of this.surfaces) {
+        const bb = surface.boundingBox();
+        border[0][0] = Math.min(border[0][0], offset[0] + bb[0][0] - 10);
+        border[0][1] = Math.min(border[0][1], offset[1] + bb[0][1] - 10);
+        border[1][0] = Math.max(border[1][0], offset[0] + bb[1][0] + 10);
+        border[1][1] = Math.max(border[1][1], offset[1] + bb[1][1] + 10);
       }
-      if (surface.scores.length > 0) {
-        outputGroupOpen();
-        for (const score of surface.scores) {
-          outputPath(
-            kerf,
-            [offset[0] + score.offset[0], offset[1] + score.offset[1]],
-            score.commands,
-            false,
-            scoreColor,
-          );
-        }
-        outputGroupClose();
-      }
-      outputGroupOpen();
-      outputPath(kerf, offset, surface.border, true, cutColor);
-      for (const cut of surface.cuts) {
-        outputPath(
-          kerf,
-          [offset[0] + cut.offset[0], offset[1] + cut.offset[1]],
-          cut.commands,
-          false,
-          cutColor,
+      originX = border[0][0];
+      originY = border[0][1];
+      width = border[1][0] - border[0][0];
+      height = border[1][1] - border[0][1];
+
+      let gid = 0;
+      const outputGroupOpen = () => {
+        data.push(
+          `<g id="p-${gid++}" style="fill:none;stroke-linecap:round;stroke-linejoin:round;">`,
         );
-      }
-      outputGroupClose();
-      if (surface.holes.length > 0) {
+      };
+      const outputGroupClose = () => {
+        data.push(`</g>`);
+      };
+      const outputPath = (offset: Vec2, shape: Shape, color: string) => {
+        const d: string[] = [];
+        shape.output(
+          {
+            beginPath: () => {},
+            moveTo: (x: number, y: number) => {
+              d.push(`M${num(x)} ${num(y)}`);
+            },
+            lineTo: (x: number, y: number) => {
+              d.push(`L${num(x)} ${num(y)}`);
+            },
+            bezierCurveTo: (
+              c1x: number,
+              c1y: number,
+              c2x: number,
+              c2y: number,
+              x: number,
+              y: number,
+            ) => {
+              d.push(
+                `C${num(c1x)} ${num(c1y)} ${num(c2x)} ${num(c2y)} ${num(x)} ${num(y)}`,
+              );
+            },
+            closePath: () => {
+              d.push('Z');
+            },
+          },
+          [1, 0, 0, 1, offset[0], offset[1]],
+        );
+        data.push(
+          `<path stroke="${color}" stroke-width="1" d="${d.join('')}" />`,
+        );
+      };
+
+      for (const { offset, surface, cutColor, scoreColor } of this.surfaces) {
         outputGroupOpen();
-        for (const hole of surface.holes) {
-          outputPath(
-            kerf,
-            [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
-            hole.commands,
-            true,
-            holeColor,
-          );
-        }
+
+        outputGroupOpen();
+        outputPath(offset, surface.scores, scoreColor);
         outputGroupClose();
-      }
-      if (surface.scores.length > 0 || surface.holes.length > 0) {
+
+        outputGroupOpen();
+        outputPath(offset, surface.border, cutColor);
+        outputPath(offset, surface.cuts, cutColor);
+        outputGroupClose();
+
         outputGroupClose();
       }
     }
 
-    const width = border[1][0] - border[0][0];
-    const height = border[1][1] - border[0][1];
+    const { units } = this.settings;
     return {
       mimeType: 'image/svg+xml',
       extension: '.svg',
@@ -165,7 +132,7 @@ export class DocumentSVG extends DocumentBase {
 <svg
   width="${num(width)}${units}"
   height="${num(height)}${units}"
-  viewBox="${num(border[0][0])} ${num(border[0][1])} ${num(width)} ${num(height)}"
+  viewBox="${num(originX)} ${num(originY)} ${num(width)} ${num(height)}"
   xmlns="http://www.w3.org/2000/svg">
 <!--
 Generated by boxburner

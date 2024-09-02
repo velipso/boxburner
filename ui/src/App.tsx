@@ -20,9 +20,7 @@ import {
   type Surface,
   type Vec2,
   SettingsTypeDef,
-  type IDrawCommand,
   exportDocument,
-  expandPathByKerf,
 } from '@velipso/boxburner';
 import AutoAnimate from './AutoAnimate';
 import * as THREE from 'three';
@@ -968,39 +966,9 @@ function wrapFillText(
   }
 }
 
-function drawPathFromCommands(
-  ctx: CanvasRenderingContext2D,
-  close: boolean,
-  { offset, commands }: { offset: Vec2; commands: IDrawCommand[] },
-) {
-  ctx.beginPath();
-  ctx.moveTo(offset[0], offset[1]);
-  for (const cmd of commands) {
-    switch (cmd.kind) {
-      case 'L':
-        ctx.lineTo(offset[0] + cmd.to[0], offset[1] + cmd.to[1]);
-        break;
-      case 'C':
-        ctx.bezierCurveTo(
-          offset[0] + cmd.c1[0],
-          offset[1] + cmd.c1[1],
-          offset[0] + cmd.c2[0],
-          offset[1] + cmd.c2[1],
-          offset[0] + cmd.to[0],
-          offset[1] + cmd.to[1],
-        );
-        break;
-    }
-  }
-  if (close) {
-    ctx.closePath();
-  }
-}
-
 interface ISurfaceDetails {
   surface: Surface;
   cutColor: string;
-  holeColor: string;
   scoreColor: string;
 }
 
@@ -1011,7 +979,6 @@ interface ISurfaceItem {
   area: number;
   offset: Vec2;
   cutColor: string;
-  holeColor: string;
   scoreColor: string;
 }
 
@@ -1256,30 +1223,12 @@ function Canvas2D({
     if (debug) {
       // draw kerf
       for (const { surface, offset } of items) {
-        const kerf = surface.kerf();
-        if (kerf > 0) {
-          drawPathFromCommands(
-            ctx,
-            true,
-            expandPathByKerf(offset, surface.border, kerf),
-          );
+        const ns = surface.applyKerf();
+        if (ns !== surface) {
+          ns.border.output(ctx, [1, 0, 0, 1, offset[0], offset[1]]);
           ctx.lineWidth = (4 * dpr) / camera.zoomFactor();
-          ctx.strokeStyle = '#77440077';
+          ctx.strokeStyle = '#44007777';
           ctx.stroke();
-          for (const hole of surface.holes) {
-            drawPathFromCommands(
-              ctx,
-              true,
-              expandPathByKerf(
-                [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
-                hole.commands,
-                kerf,
-              ),
-            );
-            ctx.lineWidth = (4 * dpr) / camera.zoomFactor();
-            ctx.strokeStyle = '#44007777';
-            ctx.stroke();
-          }
         }
       }
       // draw bounding box
@@ -1299,81 +1248,88 @@ function Canvas2D({
 
     for (const it of items) {
       const { surface, offset } = it;
-      drawPathFromCommands(ctx, true, { offset, commands: surface.border });
+      surface.border.output(ctx, [1, 0, 0, 1, offset[0], offset[1]]);
+      ctx.fillStyle = colorPalette[it.cutColor];
+      ctx.save();
+      ctx.globalAlpha = 0.125;
+      ctx.fill();
+      ctx.restore();
       ctx.lineWidth = (3 * dpr) / camera.zoomFactor();
       ctx.strokeStyle = colorPalette[it.cutColor];
       ctx.stroke();
-
-      for (const hole of surface.holes) {
-        drawPathFromCommands(ctx, true, {
-          offset: [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
-          commands: hole.commands,
-        });
-        ctx.lineWidth = (3 * dpr) / camera.zoomFactor();
-        ctx.strokeStyle = colorPalette[it.holeColor];
-        ctx.stroke();
-      }
-      for (const score of surface.scores) {
-        drawPathFromCommands(ctx, false, {
-          offset: [offset[0] + score.offset[0], offset[1] + score.offset[1]],
-          commands: score.commands,
-        });
-        ctx.lineWidth = (3 * dpr) / camera.zoomFactor();
-        ctx.strokeStyle = colorPalette[it.scoreColor];
-        ctx.stroke();
-      }
+      surface.cuts.output(ctx, [1, 0, 0, 1, offset[0], offset[1]]);
+      ctx.lineWidth = (3 * dpr) / camera.zoomFactor();
+      ctx.strokeStyle = colorPalette[it.cutColor];
+      ctx.stroke();
+      surface.scores.output(ctx, [1, 0, 0, 1, offset[0], offset[1]]);
+      ctx.lineWidth = (3 * dpr) / camera.zoomFactor();
+      ctx.strokeStyle = colorPalette[it.scoreColor];
+      ctx.stroke();
     }
 
     if (debug) {
       for (const it of items) {
         const { surface, offset } = it;
-        const point = (x: number, y: number, color: string) => {
-          ctx.beginPath();
-          ctx.arc(x, y, (2 * dpr) / camera.zoomFactor(), 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
-        };
-        const pointCommands = (
-          offset: Vec2,
-          commands: IDrawCommand[],
-          color: string,
-        ) => {
-          for (const cmd of commands) {
-            switch (cmd.kind) {
-              case 'L':
-                point(offset[0] + cmd.to[0], offset[1] + cmd.to[1], color);
-                break;
-              case 'C':
-                point(offset[0] + cmd.c1[0], offset[1] + cmd.c1[1], color);
-                point(offset[0] + cmd.c2[0], offset[1] + cmd.c2[1], color);
-                point(offset[0] + cmd.to[0], offset[1] + cmd.to[1], color);
-                break;
-            }
+
+        class ReceiverPoint {
+          color: string;
+          ctx: CanvasRenderingContext2D;
+
+          constructor(color: string, ctx: CanvasRenderingContext2D) {
+            this.color = color;
+            this.ctx = ctx;
           }
-        };
-        pointCommands(offset, surface.border, '#07f');
-        for (const { surface, offset } of items) {
-          const kerf = surface.kerf();
-          if (kerf > 0) {
-            const b = expandPathByKerf(offset, surface.border, kerf);
-            pointCommands(b.offset, b.commands, '#07f');
-            for (const hole of surface.holes) {
-              const h = expandPathByKerf(
-                [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
-                hole.commands,
-                kerf,
-              );
-              pointCommands(h.offset, h.commands, '#0f7');
-            }
+
+          point(x: number, y: number) {
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, (3 * dpr) / camera.zoomFactor(), 0, Math.PI * 2);
+            this.ctx.fillStyle = this.color;
+            this.ctx.fill();
           }
+
+          beginPath() {}
+
+          moveTo() {}
+
+          lineTo(x: number, y: number) {
+            this.point(x, y);
+          }
+
+          bezierCurveTo(
+            c1x: number,
+            c1y: number,
+            c2x: number,
+            c2y: number,
+            x: number,
+            y: number,
+          ) {
+            this.point(c1x, c1y);
+            this.point(c2x, c2y);
+            this.point(x, y);
+          }
+
+          closePath() {}
         }
-        for (const hole of surface.holes) {
-          pointCommands(
-            [offset[0] + hole.offset[0], offset[1] + hole.offset[1]],
-            hole.commands,
-            '#0f7',
-          );
+
+        const ns = surface.applyKerf();
+        if (ns !== surface) {
+          ns.border.output(new ReceiverPoint('#93f', ctx), [
+            1,
+            0,
+            0,
+            1,
+            offset[0],
+            offset[1],
+          ]);
         }
+        surface.border.output(new ReceiverPoint('#07f', ctx), [
+          1,
+          0,
+          0,
+          1,
+          offset[0],
+          offset[1],
+        ]);
       }
     }
 
@@ -1632,15 +1588,8 @@ function App() {
                           cutColor: {
                             enum: availableColors,
                             metadata: {
-                              default: 'black',
-                              title: 'Cut Color',
-                            },
-                          },
-                          holeColor: {
-                            enum: availableColors,
-                            metadata: {
                               default: 'blue',
-                              title: 'Hole Color',
+                              title: 'Cut Color',
                             },
                           },
                           scoreColor: {
@@ -1653,7 +1602,7 @@ function App() {
                         },
                         metadata: {
                           title: 'Colors',
-                          order: ['cutColor', 'holeColor', 'scoreColor'],
+                          order: ['cutColor', 'scoreColor'],
                           startHidden: true,
                         },
                       },
@@ -1668,7 +1617,7 @@ function App() {
               )
               .reduce((a, b) => ({ ...a, ...b }), {}),
             metadata: {
-              default: 'BoxPlain',
+              default: 'Rectangle',
               order: allGenerators.map((g) => g.name()),
             },
           },
@@ -1703,7 +1652,6 @@ function App() {
             surfaces.push({
               surface,
               cutColor: p.colors.cutColor,
-              holeColor: p.colors.holeColor,
               scoreColor: p.colors.scoreColor,
             });
           }
@@ -1723,8 +1671,8 @@ function App() {
     }
     const items: ISurfaceItem[] = [];
     let totalArea = 0;
-    for (const { surface, cutColor, holeColor, scoreColor } of surfaces) {
-      const boundingBox = surface.borderBoundingBox();
+    for (const { surface, cutColor, scoreColor } of surfaces) {
+      const boundingBox = surface.boundingBox();
       const area =
         (boundingBox[1][0] - boundingBox[0][0] + itemSpacing) *
         (boundingBox[1][1] - boundingBox[0][1] + itemSpacing);
@@ -1739,7 +1687,6 @@ function App() {
         area,
         offset: [0, 0],
         cutColor,
-        holeColor,
         scoreColor,
       });
     }
@@ -1768,18 +1715,11 @@ function App() {
       return;
     }
     const doc = exportDocument(params.settings);
-    for (const {
-      offset,
-      surface,
-      cutColor,
-      holeColor,
-      scoreColor,
-    } of surfaceItems) {
+    for (const { offset, surface, cutColor, scoreColor } of surfaceItems) {
       doc.addSurface(
         offset,
         surface,
         colorPalette[cutColor],
-        colorPalette[holeColor],
         colorPalette[scoreColor],
       );
     }

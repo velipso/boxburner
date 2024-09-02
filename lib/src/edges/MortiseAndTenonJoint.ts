@@ -7,9 +7,8 @@
 
 import { JointBase } from './JointBase';
 import { type EdgeBase } from './EdgeBase';
-import { type SurfaceBuilder } from '../SurfaceBuilder';
-import { copyVec2, forwardVec2 } from '../util';
-import { BoxJoint } from './BoxJoint';
+import { type Surface } from '../Surface';
+import { BoxJoint, boxJointFingerSpacer } from './BoxJoint';
 import { ButtJoint } from './ButtJoint';
 import { LegEdge } from './LegEdge';
 import { edgeListTypeDef } from './typedef';
@@ -89,6 +88,26 @@ export class MortiseAndTenonJoint extends JointBase {
               'Reserved space near corners to exclude joints (units)',
           },
         },
+        cornerDistance1Delta: {
+          type: 'float64' as const,
+          nullable: true as const,
+          metadata: {
+            default: null,
+            defaultNotNull: 0,
+            title: 'Corner Distance 1 Delta',
+            description: 'Additional corner distance',
+          },
+        },
+        cornerDistance2Delta: {
+          type: 'float64' as const,
+          nullable: true as const,
+          metadata: {
+            default: null,
+            defaultNotNull: 0,
+            title: 'Corner Distance 2 Delta',
+            description: 'Additional corner distance',
+          },
+        },
         centerDistance: {
           type: 'float64' as const,
           metadata: {
@@ -125,7 +144,6 @@ export class MortiseAndTenonJoint extends JointBase {
   }
 
   jointThickness(
-    length: number,
     callerInvert: boolean,
     thickness: number,
     { tenonLength, invert: userInvert, mortiseEdge }: any,
@@ -137,7 +155,7 @@ export class MortiseAndTenonJoint extends JointBase {
         if (!edge) {
           throw new Error('Invalid mortise edge');
         }
-        return edge.thickness(length, thickness, mortiseEdge.params);
+        return edge.thickness(thickness, mortiseEdge.params);
       }
       return 0;
     }
@@ -145,7 +163,7 @@ export class MortiseAndTenonJoint extends JointBase {
   }
 
   jointDraw(
-    sb: SurfaceBuilder,
+    surface: Surface,
     length: number,
     callerInvert: boolean,
     thickness: number,
@@ -158,93 +176,61 @@ export class MortiseAndTenonJoint extends JointBase {
       play,
       thicknessPlay,
       cornerDistance,
+      cornerDistance1Delta,
+      cornerDistance2Delta,
       centerDistance,
       mortiseEdge,
     }: any,
-  ): void {
+  ): Surface {
     const invert = callerInvert !== userInvert;
-    const iplay = invert ? -play : play;
-    let forward = (_length: number) => {};
-    let finger = () => {};
-    let space = () => {};
-    const fingers = (count: number) => {
-      if (count > 10000) {
-        throw new Error('Too many fingers');
-      }
-      finger();
-      for (let i = 0; i < count; i++) {
-        space();
-        finger();
-      }
-    };
+    let eth = 0;
     if (invert) {
-      const t = thickness + thicknessPlay * 2;
-      const start = copyVec2(sb.border.cursor());
-      const ang = sb.border.angle;
-      forwardVec2(start, ang + 90, holeDistance + t - thicknessPlay);
       if (mortiseEdge) {
         const edge = otherEdges.find((e) => e.name() === mortiseEdge.kind);
         if (!edge) {
           throw new Error('Invalid mortise edge');
         }
-        edge.draw(sb, length, thickness, mortiseEdge.params);
-      } else {
-        sb.border.forward(length);
+        eth = edge.thickness(thickness, mortiseEdge.params);
+        surface = edge.draw(surface, length, thickness, mortiseEdge.params);
       }
-      forward = (length: number) => {
-        forwardVec2(start, ang, length);
-      };
-      finger = () => {
-        forward(iplay / 2);
-        sb.hole(copyVec2(start), ang)
-          .forward(width1 - iplay)
-          .turn(-90)
-          .forward(t)
-          .turn(-90)
-          .forward(width1 - iplay)
-          .turn(-90)
-          .forward(t)
-          .turn(-90);
-        forward(-iplay / 2);
-        forward(width1);
-      };
-      space = () => {
-        forward(width2);
-      };
-    } else {
-      const t = tenonLength * thickness;
-      const a = 90;
-      forward = (length: number) => sb.border.forward(length);
-      finger = () =>
-        sb.border
-          .forward(iplay / 2)
-          .turn(-a)
-          .forward(t)
-          .turn(a)
-          .forward(width1 - iplay)
-          .turn(a)
-          .forward(t)
-          .turn(-a)
-          .forward(iplay / 2);
-      space = () => sb.border.forward(width2);
     }
-
-    const left = length - cornerDistance * 2;
-    if (centerDistance > 0) {
-      const half = (left - centerDistance) / 2;
-      const fingerCount = Math.floor((half - width1) / (width1 + width2));
-      const fingerLen = width1 + fingerCount * (width1 + width2);
-      forward(cornerDistance + (half - fingerLen) / 2);
-      fingers(fingerCount);
-      forward(centerDistance + half - fingerLen);
-      fingers(fingerCount);
-      forward(cornerDistance + (half - fingerLen) / 2);
-    } else {
-      const fingerCount = Math.floor((left - width1) / (width1 + width2));
-      const fingerLen = width1 + fingerCount * (width1 + width2);
-      forward(cornerDistance + (left - fingerLen) / 2);
-      fingers(fingerCount);
-      forward(cornerDistance + (left - fingerLen) / 2);
-    }
+    boxJointFingerSpacer(
+      {
+        length,
+        width1,
+        width2,
+        cornerDistance1: cornerDistance + (cornerDistance1Delta ?? 0),
+        cornerDistance2: cornerDistance + (cornerDistance2Delta ?? 0),
+        centerDistance,
+      },
+      (x: number, d: number, finger: boolean) => {
+        if (invert && finger) {
+          const th = thickness;
+          const y = holeDistance + eth;
+          surface = surface.subtractBorder(
+            surface
+              .newShape()
+              .beginPath()
+              .rect(
+                x - play / 2,
+                y - thicknessPlay,
+                d + play,
+                th + thicknessPlay * 2,
+              )
+              .closePath(),
+          );
+        } else if (!invert && !finger) {
+          const th = tenonLength * thickness;
+          surface = surface.subtractBorder(
+            surface
+              .newShape()
+              .beginPath()
+              .rect(x - play / 2, 0, d + play, th)
+              .closePath(),
+          );
+        }
+      },
+    );
+    return surface;
   }
 }

@@ -6,28 +6,27 @@
 //
 
 import { EdgeBase } from './EdgeBase';
-import { type SurfaceBuilder } from '../SurfaceBuilder';
+import { type Surface } from '../Surface';
 
 export abstract class JointBase extends EdgeBase {
   abstract jointThickness(
-    length: number,
     invert: boolean,
     thickness: number,
     params: any,
   ): number;
   abstract jointDraw(
-    sb: SurfaceBuilder,
+    surface: Surface,
     length: number,
     invert: boolean,
     thickness: number,
     params: any,
-  ): void;
+  ): Surface;
 
-  thickness(length: number, thickness: number, params: any) {
-    return this.jointThickness(length, false, thickness, params);
+  thickness(thickness: number, params: any) {
+    return this.jointThickness(false, thickness, params);
   }
 
-  draw(sb: SurfaceBuilder, length: number, thickness: number, params: any) {
-    this.jointDraw(sb, length, false, thickness, params);
+  draw(surface: Surface, length: number, thickness: number, params: any) {
+    return this.jointDraw(surface, length, false, thickness, params);
   }
 }
