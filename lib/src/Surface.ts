@@ -20,9 +20,9 @@ export class Surface {
   constructor(
     thickness: number,
     kerf: number,
-    border: Shape,
-    cuts: Shape,
-    scores: Shape,
+    border: Shape = polybool.shape(),
+    cuts: Shape = polybool.shape(),
+    scores: Shape = polybool.shape(),
   ) {
     this.thickness = thickness;
     this.kerf = kerf;

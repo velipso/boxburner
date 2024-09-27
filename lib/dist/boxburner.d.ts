@@ -221,7 +221,7 @@ declare class Surface {
         origin: Vec2;
         angle: number;
     };
-    constructor(thickness: number, kerf: number, border: Shape, cuts: Shape, scores: Shape);
+    constructor(thickness: number, kerf: number, border?: Shape, cuts?: Shape, scores?: Shape);
     replace(opts: Partial<{
         thickness: number;
         kerf: number;
@@ -403,6 +403,81 @@ declare class BoxNested extends GeneratorBase {
         };
     };
     generate(settings: IGeneratorSettings, { labels, width, depth, height, holeDistance, play, thicknessPlay }: any): Surface[];
+}
+
+declare class BoxTuck extends GeneratorBase {
+    name(): string;
+    schema(): {
+        properties: {
+            thickness: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    nullHint: string;
+                    title: string;
+                };
+            };
+            kerf: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    nullHint: string;
+                    title: string;
+                    description: string;
+                };
+            };
+            width: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            depth: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            height: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            scorePadding: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            notchWidth: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            notchHeight: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+        };
+        metadata: {
+            order: string[];
+        };
+    };
+    generate(settings: IGeneratorSettings, { thickness, kerf, width, depth, height, scorePadding, notchWidth, notchHeight, }: any): Surface[];
 }
 
 declare class KerfTester extends GeneratorBase {
@@ -852,4 +927,4 @@ declare const allEdges: EdgeBase[];
 declare const allJoints: JointBase[];
 declare function allEdgesTypeDef(metadata?: any, nullable?: boolean): JSONTypeDefDiscriminator;
 
-export { ApplyKerf, BoxJoint, BoxNested, BoxPlain, ButtJoint, DocumentBase, DocumentSVG, EdgeBase, GeneratorBase, type IExportFile, type IGeneratorSettings, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, JointBase, KerfTester, LegEdge, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, allEdges, allEdgesTypeDef, allGenerators, allJoints, boxJointFingerSpacer, edgeListTypeDef, exportDocument, geo, polybool };
+export { ApplyKerf, BoxJoint, BoxNested, BoxPlain, BoxTuck, ButtJoint, DocumentBase, DocumentSVG, EdgeBase, GeneratorBase, type IExportFile, type IGeneratorSettings, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, JointBase, KerfTester, LegEdge, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, allEdges, allEdgesTypeDef, allGenerators, allJoints, boxJointFingerSpacer, edgeListTypeDef, exportDocument, geo, polybool };
