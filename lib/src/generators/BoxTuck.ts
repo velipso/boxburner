@@ -22,8 +22,7 @@ export class BoxTuck extends GeneratorBase {
           type: 'float64' as const,
           nullable: true as const,
           metadata: {
-            default: null,
-            defaultNotNull: 3,
+            default: 0.3,
             nullHint: 'default',
             title: 'Material Thickness (units)',
           },

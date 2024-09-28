@@ -413,8 +413,7 @@ declare class BoxTuck extends GeneratorBase {
                 type: "float64";
                 nullable: true;
                 metadata: {
-                    default: null;
-                    defaultNotNull: number;
+                    default: number;
                     nullHint: string;
                     title: string;
                 };
