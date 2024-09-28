@@ -612,6 +612,101 @@ declare class Rectangle extends GeneratorBase {
     generate(settings: IGeneratorSettings, { label, labelFontSize, thickness, kerf, width, height, edge1, edge2, edge3, edge4, }: any): Surface[];
 }
 
+declare class TubeTab extends GeneratorBase {
+    name(): string;
+    schema(): {
+        properties: {
+            thickness: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: number;
+                    nullHint: string;
+                    title: string;
+                };
+            };
+            kerf: {
+                type: "float64";
+                nullable: true;
+                metadata: {
+                    default: null;
+                    defaultNotNull: number;
+                    nullHint: string;
+                    title: string;
+                    description: string;
+                };
+            };
+            width: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            depth: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            height: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            scorePadding: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            tabWidth: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            tabHeight: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            tabInnerCut: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            tabCount: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+            receiverWidth: {
+                type: "float64";
+                metadata: {
+                    default: number;
+                    title: string;
+                };
+            };
+        };
+        metadata: {
+            order: string[];
+        };
+    };
+    generate(settings: IGeneratorSettings, { thickness, kerf, width, depth, height, scorePadding, tabWidth, tabHeight, tabInnerCut, tabCount, receiverWidth, }: any): Surface[];
+}
+
 declare const allGenerators: GeneratorBase[];
 
 declare abstract class EdgeBase {
@@ -926,4 +1021,4 @@ declare const allEdges: EdgeBase[];
 declare const allJoints: JointBase[];
 declare function allEdgesTypeDef(metadata?: any, nullable?: boolean): JSONTypeDefDiscriminator;
 
-export { ApplyKerf, BoxJoint, BoxNested, BoxPlain, BoxTuck, ButtJoint, DocumentBase, DocumentSVG, EdgeBase, GeneratorBase, type IExportFile, type IGeneratorSettings, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, JointBase, KerfTester, LegEdge, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, allEdges, allEdgesTypeDef, allGenerators, allJoints, boxJointFingerSpacer, edgeListTypeDef, exportDocument, geo, polybool };
+export { ApplyKerf, BoxJoint, BoxNested, BoxPlain, BoxTuck, ButtJoint, DocumentBase, DocumentSVG, EdgeBase, GeneratorBase, type IExportFile, type IGeneratorSettings, type IntersectionResult, type JSONTypeDef, type JSONTypeDefCommon, type JSONTypeDefDiscriminator, type JSONTypeDefElements, type JSONTypeDefEnum, type JSONTypeDefProperties, type JSONTypeDefRef, type JSONTypeDefSchema, type JSONTypeDefTypeBoolean, type JSONTypeDefTypeFloat64, type JSONTypeDefTypeInt32, type JSONTypeDefTypeString, JointBase, KerfTester, LegEdge, MortiseAndTenonJoint, Rectangle, SettingsTypeDef, Surface, TubeTab, allEdges, allEdgesTypeDef, allGenerators, allJoints, boxJointFingerSpacer, edgeListTypeDef, exportDocument, geo, polybool };
