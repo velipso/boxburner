@@ -504,9 +504,12 @@ export class BoxCardstock extends GeneratorBase {
               -receiverWidth,
               0,
               -receiverWidth,
-              receiverWidth,
+              Math.min(receiverWidth, height / 2 - 0.5),
             )
-            .lineTo(-receiverWidth, height - receiverWidth)
+            .lineTo(
+              -receiverWidth,
+              Math.max(height - receiverWidth, height / 2 + 0.5),
+            )
             .bezierCurveTo(
               -receiverWidth,
               height,
