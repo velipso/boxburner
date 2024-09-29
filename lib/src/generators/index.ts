@@ -8,23 +8,20 @@
 import { type GeneratorBase } from './GeneratorBase';
 import { BoxPlain } from './BoxPlain';
 import { BoxNested } from './BoxNested';
-import { BoxTuck } from './BoxTuck';
+import { BoxCardstock } from './BoxCardstock';
 import { KerfTester } from './KerfTester';
 import { Rectangle } from './Rectangle';
-import { TubeTab } from './TubeTab';
 export * from './BoxPlain';
 export * from './BoxNested';
-export * from './BoxTuck';
+export * from './BoxCardstock';
 export * from './KerfTester';
 export * from './GeneratorBase';
 export * from './Rectangle';
-export * from './TubeTab';
 
 export const allGenerators: GeneratorBase[] = [
   new BoxNested(),
   new BoxPlain(),
-  new BoxTuck(),
+  new BoxCardstock(),
   new KerfTester(),
   new Rectangle(),
-  new TubeTab(),
 ];
