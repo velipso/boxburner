@@ -507,6 +507,14 @@ declare class BoxCardstock extends GeneratorBase {
                                             title: string;
                                         };
                                     };
+                                    insertPadding: {
+                                        type: "float64";
+                                        metadata: {
+                                            default: number;
+                                            title: string;
+                                            description: string;
+                                        };
+                                    };
                                     tabWidth: {
                                         type: "float64";
                                         metadata: {
@@ -528,7 +536,58 @@ declare class BoxCardstock extends GeneratorBase {
                                             title: string;
                                         };
                                     };
+                                    tabExtension: {
+                                        type: "float64";
+                                        metadata: {
+                                            default: number;
+                                            title: string;
+                                            description: string;
+                                        };
+                                    };
                                     tabCount: {
+                                        type: "float64";
+                                        metadata: {
+                                            default: number;
+                                            title: string;
+                                        };
+                                    };
+                                    flip?: {
+                                        type: "boolean";
+                                        metadata: {
+                                            default: boolean;
+                                            title: string;
+                                        };
+                                    } | undefined;
+                                };
+                                metadata: {
+                                    order: string[];
+                                };
+                            };
+                        };
+                        metadata: {
+                            order: string[];
+                            untabParams: boolean;
+                        };
+                    };
+                    tuck: {
+                        properties: {
+                            kind: {
+                                type: "string";
+                                metadata: {
+                                    default: string;
+                                    title: string;
+                                };
+                            };
+                            params: {
+                                properties: {
+                                    notchWidth: {
+                                        type: "float64";
+                                        metadata: {
+                                            default: number;
+                                            title: string;
+                                        };
+                                    };
+                                    notchHeight: {
                                         type: "float64";
                                         metadata: {
                                             default: number;
